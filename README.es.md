@@ -78,6 +78,62 @@ ai-engineering-company-project-template/
 
 ---
 
+## Guía rápida del Hito 2 (Capa de lógica Nexova)
+
+Este repositorio ahora incluye una capa de lógica completa en TypeScript y pruebas automatizadas para el hito de programación de Nexova.
+
+### Comandos para ejecutar
+
+```bash
+npm install
+npm run typecheck
+npm test
+```
+
+### Estructura implementada
+
+```text
+src/
+├── types/
+│   └── models.ts
+└── utils/
+	├── collections.ts
+	├── search.ts
+	├── transformations.ts
+	└── validations.ts
+
+tests/
+├── fixtures/
+│   └── nexovaData.ts
+├── collections.test.ts
+├── search.test.ts
+├── transformations.test.ts
+└── validations.test.ts
+```
+
+### Mapa de funciones por responsabilidad
+
+| Archivo | Funciones |
+| --- | --- |
+| src/types/models.ts | Candidate, Vacancy, SelectionProcess, EnglishLevel, SeniorityLevel, AvailabilityStatus, CandidateStatus, VacancyStatus, ProcessStage |
+| src/utils/collections.ts | filterCandidatesBySkills, filterCandidatesBySeniority, filterCandidatesByAvailability, sortCandidatesBySalary, sortCandidatesByExperience |
+| src/utils/search.ts | findCandidateById, findCandidateByEmail, binarySearchCandidateBySalary |
+| src/utils/transformations.ts | calculateCandidateScore, rankCandidatesForVacancy, groupCandidatesBySeniority, countCandidatesByStatus, calculateAverageSalary, findTopSkills, calculateVacancyFillRate |
+| src/utils/validations.ts | validateCandidate, validateVacancy, isValidEmail |
+
+### Alineación con criterios de evaluación
+
+- Seguridad de tipos completa con interfaces y uniones explícitas.
+- Funciones puras sin uso de estado global.
+- Comportamiento sin mutaciones en filtros y ordenamientos.
+- Búsqueda lineal y búsqueda binaria implementadas como se pidió.
+- Transformaciones de puntuación, ranking, agrupación y reportes implementadas.
+- Validaciones de reglas de negocio para candidatos y vacantes implementadas.
+- Suite de pruebas automatizadas con datos dummy y cobertura de casos borde.
+- Modelos de dominio confinados solo en src/types/models.ts.
+
+---
+
 ## Enlaces
 
 - [4Geeks Academy — Ingeniería de IA](https://4geeksacademy.com/es/programas-de-carrera/ingenieria-ia)

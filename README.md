@@ -78,6 +78,62 @@ ai-engineering-company-project-template/
 
 ---
 
+## Milestone 2 Quick Guide (Nexova Logic Layer)
+
+This repository now includes a complete TypeScript logic layer and automated tests for the Nexova programming milestone.
+
+### Run commands
+
+```bash
+npm install
+npm run typecheck
+npm test
+```
+
+### Implemented file structure
+
+```text
+src/
+├── types/
+│   └── models.ts
+└── utils/
+	├── collections.ts
+	├── search.ts
+	├── transformations.ts
+	└── validations.ts
+
+tests/
+├── fixtures/
+│   └── nexovaData.ts
+├── collections.test.ts
+├── search.test.ts
+├── transformations.test.ts
+└── validations.test.ts
+```
+
+### Function map by responsibility
+
+| File | Functions |
+| --- | --- |
+| src/types/models.ts | Candidate, Vacancy, SelectionProcess, EnglishLevel, SeniorityLevel, AvailabilityStatus, CandidateStatus, VacancyStatus, ProcessStage |
+| src/utils/collections.ts | filterCandidatesBySkills, filterCandidatesBySeniority, filterCandidatesByAvailability, sortCandidatesBySalary, sortCandidatesByExperience |
+| src/utils/search.ts | findCandidateById, findCandidateByEmail, binarySearchCandidateBySalary |
+| src/utils/transformations.ts | calculateCandidateScore, rankCandidatesForVacancy, groupCandidatesBySeniority, countCandidatesByStatus, calculateAverageSalary, findTopSkills, calculateVacancyFillRate |
+| src/utils/validations.ts | validateCandidate, validateVacancy, isValidEmail |
+
+### Evaluation checklist alignment
+
+- Full type safety with explicit interfaces and union types.
+- Pure utility functions with no global state usage.
+- Non-mutating sorting and filtering behavior.
+- Linear search and binary search implemented as requested.
+- Scoring, ranking, grouping, and reporting aggregations implemented.
+- Candidate and vacancy business validation rules implemented.
+- Automated test suite with dummy data and edge-case coverage.
+- Domain models confined to src/types/models.ts only.
+
+---
+
 ## Links
 
 - [4Geeks Academy — AI Engineering](https://4geeksacademy.com/es/programas-de-carrera/ingenieria-ia)
