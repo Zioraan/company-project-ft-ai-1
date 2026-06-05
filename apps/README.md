@@ -1,8 +1,32 @@
-# `apps` Folder
+# apps Directory
 
-This folder contains **all the applications of the monorepo** related to the company for the cross-functional AI Engineering project (for example: web applications, APIs, internal dashboards, customer portals, etc.).
+Current role in this repository: legacy and compatibility reference during staged migration.
 
-Each subfolder inside `apps/` must correspond to **one specific application** (for example: `web-portal`, `admin-api`, `backoffice-dashboard`) and include its own technical and functional documentation.
+## Current status
 
-- **Main purpose**: to centralize in a single monorepo all the applications that support the company's use cases.
-- **Recommendation**: document in this file (or in sub-READMEs) the applications you add, their objective, the technology used, and how to run them in development, testing, and production environments.
+1. Active UI surfaces live under `uis/*`.
+2. Shared service extraction is moving toward `services/*`.
+3. Paths under `apps/*` are retained temporarily for compatibility and traceability.
+
+## Development policy
+
+1. Do not add net-new feature work under `apps/*`.
+2. Add new UI work under `uis/website` or `uis/backoffice`.
+3. Add shared integration logic under root `services/*`.
+4. Keep legacy app docs explicit about deprecation and target replacement paths.
+
+## Stage references
+
+1. `docs/migration-checkpoints.md`
+2. `docs/eval-traceability.md`
+3. `docs/stage2-cutover-checklist.md`
+
+## Deprecation sunset criteria
+
+`apps/*` legacy paths can be removed only when all conditions are true:
+
+1. Replacement UI behavior in `uis/*` is validated for critical flows.
+2. Shared service extraction to `services/*` is complete for active consumers.
+3. Regression checks pass for website, backoffice, and root logic layers.
+4. Traceability evidence for Stage 4 cutover is marked complete.
+5. Team confirms no remaining operational dependency on `apps/*` routes.

@@ -5,9 +5,19 @@
   "description": "Nexova coding fundamentals logic layer",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "lint": "npm run lint:tracker && npm run lint:website && npm run lint:backoffice",
+    "lint:tracker": "npm --prefix apps/talent-pipeline-tracker run lint",
+    "lint:website": "npm --prefix uis/website run lint",
+    "lint:backoffice": "npm --prefix uis/backoffice run lint",
+    "test": "npm run test:root",
+    "test:root": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "npm run typecheck:root && npm run typecheck:tracker && npm run typecheck:website && npm run typecheck:backoffice",
+    "typecheck:root": "tsc --noEmit",
+    "typecheck:tracker": "npm --prefix apps/talent-pipeline-tracker exec tsc -- --noEmit",
+    "typecheck:website": "npx --prefix uis/website tsc --noEmit",
+    "typecheck:backoffice": "npx --prefix uis/backoffice tsc --noEmit",
+    "ci": "npm run lint && npm run typecheck && npm run test"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
