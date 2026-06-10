@@ -67,6 +67,22 @@
 28. Implemented Phase 2 fixture decoupling: `BusinessLogicPanel` now uses production-safe backoffice demo data module instead of importing runtime data from `tests/fixtures`.
 29. Implemented Phase 3 website font optimization baseline by adding `next/font` loading in `uis/website/app/layout.tsx`.
 30. Implemented Phase 4 client data/cache hardening in backoffice by migrating candidate and notes hooks to SWR with fallback hydration and mutation-driven cache updates.
+31. Implemented incident CSV data-integrity analysis Phase 1:
+   - shared Python module at `services/api/domain/incident_analysis.py`
+   - CLI entrypoint at `scripts/analyze.py`
+   - synthetic fixture and pytest coverage in `tests/test_incident_analysis.py`
+32. Implemented incident analysis Phase 2 platform integration:
+   - FastAPI service at `services/api` with analyze and export endpoints
+   - backoffice route at `uis/backoffice/app/incidents/analysis`
+   - incidents service, mappers, and upload/summary UI components
+33. Added incident eval traceability matrix at `docs/eval-traceability-incidents.md` and Python test job in CI.
+34. Completed Milestone 4 backoffice alignment:
+   - `/` restored as internal entry dashboard with `BackofficeDashboard` and enriched `BusinessLogicPanel`
+   - Milestone 3 talent pipeline list moved to `/candidates`
+   - Canonical M2 sample data at `src/data/talent-sample-data.ts` with DB mappers and `data/seed/talent` JSON mirrors
+   - `services/domain/talent-sample.ts` in-memory provider stub for future DB swap
+   - Cross-milestone validation doc at `memory-bank/documentation/milestone-4-validation.md`
+   - Updated `docs/eval-traceability.md` evidence for E-16, E-17, E-18
 
 ## Next Steps
 
@@ -74,6 +90,7 @@
 2. Continue Stage 3 migration for remaining service adapters and add adapter-level tests.
 3. Execute Stage 4 cutover evidence checklist and confirm no operational dependency remains on legacy `apps/*` routes.
 4. Decide whether to remediate or defer the current `npm audit` moderate vulnerabilities in `uis/backoffice` with explicit rationale.
+5. ~~Verify `scripts/analyze.py` output against `docs/incidents-nexova.csv`~~ — completed via `tests/test_nexova_golden.py` (E-I12).
 
 ## Risks
 

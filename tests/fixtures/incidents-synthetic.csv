@@ -1,0 +1,11 @@
+ticket_id,date,client_company,category,description,agent_id,status,customer_email,satisfaction_score
+NXV-000001,2024-01-01,Acme Corp,TECHNICAL,Valid technical issue reported,AGT-01,OPEN,user1@example.com,
+NXV-000002,2024-01-02,,BILLING,Valid billing issue details,AGT-02,OPEN,user2@example.com,
+NXV-000003,2024-01-03,Beta Ltd,INVALID,Valid description here,AGT-03,OPEN,user3@example.com,
+NXV-000004,2024-01-04,Gamma Inc,ACCESS,tiny,AGT-04,OPEN,user4@example.com,
+NXV-000005,2024-01-05,Delta Co,HR_QUERY,Valid HR query details,AGT-9,OPEN,user5@example.com,
+NXV-000006,2024-01-06,Epsilon LLC,COMPLAINT,Valid complaint details,AGT-06,OPEN,not-an-email,
+NXV-000007,2024-01-07,Zeta Group,BILLING,Closed ticket missing score,AGT-07,CLOSED,user7@example.com,
+NXV-000008,2024-01-08,Eta Partners,TECHNICAL,Valid closed with score,AGT-08,CLOSED,user8@example.com,4
+NXV-000009,2024-01-09,Theta Systems,ACCESS,Valid open with bad score,AGT-09,OPEN,user9@example.com,9
+NXV-000010,2024-01-10,Iota Retail,BILLING,Another valid closed ticket,AGT-10,CLOSED,user10@example.com,5

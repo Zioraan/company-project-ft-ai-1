@@ -1,6 +1,6 @@
-import type { Candidate, Vacancy } from "../../../src/types/models";
+import type { Candidate, SelectionProcess, Vacancy } from "../types/models";
 
-export const milestoneDemoCandidates: Candidate[] = [
+export const sampleCandidates: Candidate[] = [
   {
     id: "C-2024-0451",
     fullName: "María González",
@@ -51,7 +51,7 @@ export const milestoneDemoCandidates: Candidate[] = [
   },
 ];
 
-export const milestoneDemoVacancy: Vacancy = {
+export const sampleVacancy: Vacancy = {
   id: "V-2024-0892",
   title: "Senior Full-Stack Developer",
   companyName: "TechCorp Solutions",
@@ -67,3 +67,50 @@ export const milestoneDemoVacancy: Vacancy = {
   location: "Remote",
   status: "Open",
 };
+
+export const sampleProcesses: SelectionProcess[] = [
+  {
+    id: "SP-2024-0001",
+    candidateId: "C-2024-0451",
+    vacancyId: "V-2024-0892",
+    stage: "Interview",
+    score: 70,
+    notes: "Strong candidate",
+    createdAt: new Date("2026-01-10T10:00:00.000Z"),
+    updatedAt: new Date("2026-01-12T10:00:00.000Z"),
+  },
+  {
+    id: "SP-2024-0002",
+    candidateId: "C-2024-0452",
+    vacancyId: "V-2024-0892",
+    stage: "Rejected",
+    score: 35,
+    notes: "Missing required skills",
+    createdAt: new Date("2026-01-11T10:00:00.000Z"),
+    updatedAt: new Date("2026-01-13T10:00:00.000Z"),
+  },
+  {
+    id: "SP-2024-0003",
+    candidateId: "C-2024-0453",
+    vacancyId: "V-2024-0892",
+    stage: "Hired",
+    score: 87,
+    notes: "Excellent fit",
+    createdAt: new Date("2026-01-14T10:00:00.000Z"),
+    updatedAt: new Date("2026-01-20T10:00:00.000Z"),
+  },
+];
+
+export type TalentSampleDataset = {
+  candidates: Candidate[];
+  vacancy: Vacancy;
+  processes: SelectionProcess[];
+};
+
+export function loadTalentSampleDataset(): TalentSampleDataset {
+  return {
+    candidates: sampleCandidates,
+    vacancy: sampleVacancy,
+    processes: sampleProcesses,
+  };
+}

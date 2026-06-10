@@ -37,5 +37,18 @@ jobs:
       - name: Install backoffice dependencies
         run: npm ci --prefix uis/backoffice
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install Python test dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run Python tests
+        run: pytest
+
       - name: Run quality gate
         run: npm run ci

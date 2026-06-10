@@ -68,7 +68,7 @@ export function CandidateDetailClient({
       <main className="p-6">
         <p className="text-red-700">{error ?? "Candidate not found"}</p>
         <Link
-          href="/"
+          href="/candidates"
           className="mt-3 inline-block rounded bg-slate-900 px-3 py-2 text-sm text-white"
         >
           Back to list
@@ -92,7 +92,7 @@ export function CandidateDetailClient({
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <div className="flex items-center justify-between">
           <Link
-            href="/"
+            href="/candidates"
             className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
           >
             Back to candidates
@@ -101,7 +101,7 @@ export function CandidateDetailClient({
             disabled={saving}
             onClick={async () => {
               await removeRecord();
-              router.push("/");
+              router.push("/candidates");
             }}
             className="rounded bg-red-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >

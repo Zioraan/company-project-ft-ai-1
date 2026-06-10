@@ -1,0 +1,18 @@
+[
+  {
+    "id": "V-2024-0892",
+    "title": "Senior Full-Stack Developer",
+    "companyName": "TechCorp Solutions",
+    "requiredSkills": ["TypeScript", "React", "Node.js"],
+    "preferredSkills": ["PostgreSQL", "Docker"],
+    "minYearsExperience": 4,
+    "maxYearsExperience": 8,
+    "requiredEnglishLevel": "B2",
+    "requiredSeniority": "Senior",
+    "salaryRangeMin": 5000,
+    "salaryRangeMax": 7000,
+    "isRemote": true,
+    "location": "Remote",
+    "status": "Open"
+  }
+]

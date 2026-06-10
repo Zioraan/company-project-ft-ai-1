@@ -1,0 +1,32 @@
+[
+  {
+    "id": "SP-2024-0001",
+    "candidateId": "C-2024-0451",
+    "vacancyId": "V-2024-0892",
+    "stage": "Interview",
+    "score": 70,
+    "notes": "Strong candidate",
+    "createdAt": "2026-01-10T10:00:00.000Z",
+    "updatedAt": "2026-01-12T10:00:00.000Z"
+  },
+  {
+    "id": "SP-2024-0002",
+    "candidateId": "C-2024-0452",
+    "vacancyId": "V-2024-0892",
+    "stage": "Rejected",
+    "score": 35,
+    "notes": "Missing required skills",
+    "createdAt": "2026-01-11T10:00:00.000Z",
+    "updatedAt": "2026-01-13T10:00:00.000Z"
+  },
+  {
+    "id": "SP-2024-0003",
+    "candidateId": "C-2024-0453",
+    "vacancyId": "V-2024-0892",
+    "stage": "Hired",
+    "score": 87,
+    "notes": "Excellent fit",
+    "createdAt": "2026-01-14T10:00:00.000Z",
+    "updatedAt": "2026-01-20T10:00:00.000Z"
+  }
+]
