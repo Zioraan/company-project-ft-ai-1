@@ -83,6 +83,12 @@
    - `services/domain/talent-sample.ts` in-memory provider stub for future DB swap
    - Cross-milestone validation doc at `memory-bank/documentation/milestone-4-validation.md`
    - Updated `docs/eval-traceability.md` evidence for E-16, E-17, E-18
+35. Implemented Supplier Directory milestone (Milestone 09):
+   - TinyDB-backed FastAPI supplier CRUD at `services/api/app/routers/suppliers.py` with idempotent seeding
+   - Backoffice supplier directory at `/suppliers` and `/suppliers/[id]` with URL-synced filters
+   - Service boundary, mappers, query parsers, and SWR hooks under `uis/backoffice/`
+   - API tests at `tests/test_suppliers_api.py`; mapper/query tests at `tests/suppliers-*.test.ts`
+   - Eval traceability at `docs/eval-traceability-suppliers.md`
 
 ## Next Steps
 

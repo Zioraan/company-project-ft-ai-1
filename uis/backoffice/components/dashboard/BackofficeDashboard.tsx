@@ -9,6 +9,12 @@ const quickLinks = [
     description: "View, filter, and manage candidate records and pipeline stages.",
   },
   {
+    href: "/suppliers",
+    title: "Supplier Directory",
+    description:
+      "Manage external service providers, contract rates, and renewal visibility.",
+  },
+  {
     href: "/incidents/analysis",
     title: "Incident Analysis",
     description: "Upload support ticket CSVs and review data integrity metrics.",
