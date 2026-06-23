@@ -2,20 +2,30 @@
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.config import clear_settings_cache, get_settings
+from app.routers.auth import router as auth_router
 from app.routers.incidents import router as incidents_router
 from app.routers.suppliers import router as suppliers_router
+from app.routers.users import router as users_router
 from app.seed.suppliers_seed import SUPPLIERS_SEED
 from app.store.suppliers_store import seed_suppliers
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s:     %(message)s",
+    )
+    clear_settings_cache()
+    get_settings()
     seed_suppliers(SUPPLIERS_SEED)
     yield
 
@@ -38,6 +48,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+app.include_router(users_router)
 app.include_router(incidents_router)
 app.include_router(suppliers_router)
 

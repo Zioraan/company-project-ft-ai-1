@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.core.dependencies import get_current_user
 from app.schemas.suppliers import (
     SupplierCreateSchema,
     SupplierRateUpdateSchema,
@@ -12,7 +13,11 @@ from app.schemas.suppliers import (
 )
 from app.store import suppliers_store
 
-router = APIRouter(prefix="/api/suppliers", tags=["suppliers"])
+router = APIRouter(
+    prefix="/api/suppliers",
+    tags=["suppliers"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post(

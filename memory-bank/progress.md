@@ -5,7 +5,9 @@
 - Root TypeScript logic layer and tests are implemented.
 - Talent pipeline tracker Next.js app exists with service/hook/component separation.
 - API mapping and query-filter patterns are in place.
-- Governance bootstrap is now being implemented.
+- Governance bootstrap is in place.
+- Platform FastAPI service (`services/api`) enforces stateless JWT authentication on supplier and incident routes.
+- Backoffice (`uis/backoffice`) implements JWT session flows, route guards, account management, and password reset UI.
 
 ## Completed In This Iteration
 
@@ -89,6 +91,29 @@
    - Service boundary, mappers, query parsers, and SWR hooks under `uis/backoffice/`
    - API tests at `tests/test_suppliers_api.py`; mapper/query tests at `tests/suppliers-*.test.ts`
    - Eval traceability at `docs/eval-traceability-suppliers.md`
+36. Implemented AUTH-01 JWT authentication and route protection (`feature/auth`):
+   - Core auth layer at `services/api/app/core/` (`config.py`, `security.py`, `dependencies.py`)
+   - User CRUD store and routes at `services/api/app/store/users_store.py` and `app/routers/users.py` (`/users`)
+   - Auth routes at `services/api/app/routers/auth.py` (`/auth/login`, `/auth/register`, `/auth/me`)
+   - Stateless JWT via `python-jose` + `passlib[bcrypt]`; env-driven `JWT_SECRET_KEY` and `ACCESS_TOKEN_EXPIRE_MINUTES`
+   - `get_current_user` dependency protects all `/api/suppliers/*` and `/api/incidents/*` routes; `/health` and public registration/login remain open
+   - Self-only authorization for `PUT`/`DELETE /users/{id}` (`403` for cross-user mutation; admin RBAC deferred)
+   - Shared pytest fixtures in `tests/conftest.py`; auth coverage in `tests/test_auth_api.py`
+   - Regression suites updated for authenticated supplier/incident calls
+   - Env template at `services/api/.env.example`; eval traceability at `docs/eval-traceability-auth.md`
+37. Implemented AUTH-02 + AUTH-03 frontend auth and password reset:
+   - Backoffice auth infra: `lib/auth-token.ts`, `lib/platform-api-client.ts`, `services/auth.ts`
+   - Public routes: `/login`, `/register`, `/forgot-password`, `/reset-password` under `app/(public)/`
+   - Protected routes with `AuthGuard` under `app/(protected)/` including `/account/profile` and `/account/change-password`
+   - Backend extensions: user `name`, `POST /auth/change-password`, forgot/reset password with Resend + TinyDB reset token tracking
+   - Vitest coverage at `tests/auth-token.test.ts` and `tests/platform-api-client.test.ts`
+   - Eval traceability at `docs/eval-traceability-auth-frontend.md`
+38. Secrets and local-data hygiene pass (post AUTH-02/03):
+   - Verified gitignore coverage: `services/api/.env`, `uis/backoffice/.env.local`, `services/api/data/` (TinyDB user hashes and reset tokens)
+   - Only `*.env.example` templates are tracked; no API keys or credentials in committed source
+   - Root `.gitignore` tightened with `!**/.env.example` and `*.pem`; local `.env` redacted of commented Resend key
+   - Dev password reset: when `RESEND_API_KEY` is unset, reset URL prints to API console via `email.py` dev fallback
+   - Production email requires Resend config; rotate any API key that was ever pasted into local `.env`
 
 ## Next Steps
 
@@ -103,6 +128,7 @@
 - Governance drift if local rules conflict with baseline and are not resolved by strictest-wins policy.
 - Migration risk if future structure changes happen without parity checkpoints.
 - Runtime tooling risk: running `next dev` may auto-adjust local TypeScript config in app surfaces, creating incidental config diffs that should be reviewed before commit.
+- Password reset email delivery requires `RESEND_API_KEY` in production; dev falls back to server log output.
 
 ## Update Trigger
 

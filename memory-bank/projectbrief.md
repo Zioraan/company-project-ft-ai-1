@@ -25,6 +25,7 @@ Current implementation priority is governance and architecture hardening:
 2. Create and maintain a living memory bank.
 3. Preserve company context as mandatory session input.
 4. Support staged migration from current app layout to target UI layout.
+5. Secure the platform FastAPI service with stateless JWT authentication and route protection (AUTH-01).
 
 ## Success Criteria
 
