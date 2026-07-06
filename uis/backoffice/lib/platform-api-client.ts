@@ -3,6 +3,10 @@ import { clearAccessToken, getAccessToken } from "@/lib/auth-token";
 const PLATFORM_API_BASE_URL =
   process.env.NEXT_PUBLIC_INCIDENTS_API_URL ?? "http://localhost:8000";
 
+export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
+export const NETWORK_ERROR_MESSAGE = "Unable to reach the server.";
+export const INVALID_RESPONSE_MESSAGE = "Invalid server response.";
+
 export class PlatformApiError extends Error {
   status: number;
   payload: unknown;
@@ -47,10 +51,20 @@ function formatValidationDetail(detail: unknown): string | null {
   return messages.length > 0 ? messages.join("; ") : null;
 }
 
-async function parseErrorMessage(
+export function parseErrorMessage(
   response: Response,
   payload: unknown,
-): Promise<string> {
+): string {
+  const status = response.status;
+
+  if (status >= 500) {
+    return GENERIC_ERROR_MESSAGE;
+  }
+
+  if (status === 401) {
+    return "Your session has expired. Please sign in again.";
+  }
+
   if (
     typeof payload === "object" &&
     payload !== null &&
@@ -86,7 +100,15 @@ async function parseErrorMessage(
     return (payload as { error: string }).error;
   }
 
-  return `Request failed with status ${response.status}`;
+  if (status === 404) {
+    return "The requested resource was not found.";
+  }
+
+  if (status === 403) {
+    return "You do not have permission to perform this action.";
+  }
+
+  return GENERIC_ERROR_MESSAGE;
 }
 
 let unauthorizedHandler: (() => void) | null = null;
@@ -111,6 +133,36 @@ function handleUnauthorized(tokenWasSent: boolean): void {
   }
 }
 
+async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new PlatformApiError(NETWORK_ERROR_MESSAGE, 0, null);
+  }
+}
+
+async function parseResponsePayload(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  try {
+    if (contentType.includes("application/json")) {
+      return await response.json();
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    return await response.text();
+  } catch {
+    throw new PlatformApiError(
+      INVALID_RESPONSE_MESSAGE,
+      response.status,
+      null,
+    );
+  }
+}
+
 export async function platformApiRequest<T>(
   path: string,
   init?: RequestInit,
@@ -127,7 +179,7 @@ export async function platformApiRequest<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${PLATFORM_API_BASE_URL}${path}`, {
+  const response = await safeFetch(`${PLATFORM_API_BASE_URL}${path}`, {
     ...init,
     headers,
     cache: "no-store",
@@ -137,17 +189,14 @@ export async function platformApiRequest<T>(
     return undefined as T;
   }
 
-  const contentType = response.headers.get("content-type") ?? "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  const payload = await parseResponsePayload(response);
 
   if (response.status === 401) {
     handleUnauthorized(Boolean(token));
   }
 
   if (!response.ok) {
-    const message = await parseErrorMessage(response, payload);
+    const message = parseErrorMessage(response, payload);
     throw new PlatformApiError(message, response.status, payload);
   }
 
@@ -165,7 +214,7 @@ export async function platformApiDownload(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${PLATFORM_API_BASE_URL}${path}`, {
+  const response = await safeFetch(`${PLATFORM_API_BASE_URL}${path}`, {
     headers,
     cache: "no-store",
   });
@@ -175,13 +224,18 @@ export async function platformApiDownload(
   }
 
   if (!response.ok) {
-    const contentType = response.headers.get("content-type") ?? "";
-    const payload = contentType.includes("application/json")
-      ? await response.json()
-      : await response.text();
-    const message = await parseErrorMessage(response, payload);
+    const payload = await parseResponsePayload(response);
+    const message = parseErrorMessage(response, payload);
     throw new PlatformApiError(message, response.status, payload);
   }
 
-  return response.blob();
+  try {
+    return await response.blob();
+  } catch {
+    throw new PlatformApiError(
+      INVALID_RESPONSE_MESSAGE,
+      response.status,
+      null,
+    );
+  }
 }

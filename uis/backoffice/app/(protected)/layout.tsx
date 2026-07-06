@@ -1,4 +1,5 @@
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { UnauthorizedHandlerProvider } from "@/components/auth/UnauthorizedHandlerProvider";
 import { BackofficeNav } from "@/components/navigation/BackofficeNav";
 
 export default function ProtectedRoutesLayout({
@@ -7,9 +8,11 @@ export default function ProtectedRoutesLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthGuard>
-      <BackofficeNav />
-      {children}
-    </AuthGuard>
+    <UnauthorizedHandlerProvider>
+      <AuthGuard>
+        <BackofficeNav />
+        {children}
+      </AuthGuard>
+    </UnauthorizedHandlerProvider>
   );
 }

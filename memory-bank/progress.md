@@ -112,8 +112,14 @@
    - Verified gitignore coverage: `services/api/.env`, `uis/backoffice/.env.local`, `services/api/data/` (TinyDB user hashes and reset tokens)
    - Only `*.env.example` templates are tracked; no API keys or credentials in committed source
    - Root `.gitignore` tightened with `!**/.env.example` and `*.pem`; local `.env` redacted of commented Resend key
-   - Dev password reset: when `RESEND_API_KEY` is unset, reset URL prints to API console via `email.py` dev fallback
+   - Dev password reset: when `RESEND_API_KEY` is unset, API logs a non-PII dev-fallback event only (no email/token/URL in logs)
    - Production email requires Resend config; rotate any API key that was ever pasted into local `.env`
+39. Completed error-handling remediation (36/37 audit items):
+   - Backend: `core/exceptions.py` global handlers, secure `email.py`, generic 409 messages, incident error maps, config validation
+   - Frontend: hardened `platform-api-client` / `api-client`, `ErrorState` + `AsyncState`, `error.tsx` / `global-error.tsx`, SSR `initialError`, retry CTAs across list/detail/incident/notes/profile surfaces
+   - Scripts: `analyze.py` input validation, scoped exceptions, export exit codes; `tests/test_analyze_cli.py`
+   - Eval traceability: `docs/eval-traceability-error-handling.md`; audit checkboxes in `memory-bank/documentation/error-handling-audit.md`
+   - Deferred: `skills/data-analysis/scripts/pandas_clean.py` (snippet only)
 
 ## Next Steps
 

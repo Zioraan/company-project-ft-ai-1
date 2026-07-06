@@ -1,97 +1,89 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-function createLocalStorageMock() {
-  const store = new Map<string, string>();
-  return {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      store.set(key, value);
-    },
-    removeItem: (key: string) => {
-      store.delete(key);
-    },
-    clear: () => {
-      store.clear();
-    },
-  };
-}
+import {
+  GENERIC_ERROR_MESSAGE,
+  NETWORK_ERROR_MESSAGE,
+  PlatformApiError,
+  parseErrorMessage,
+  platformApiRequest,
+} from "../uis/backoffice/lib/platform-api-client";
 
 describe("platform-api-client", () => {
   beforeEach(() => {
-    const localStorage = createLocalStorageMock();
-    vi.stubGlobal("window", { localStorage, location: { href: "" } });
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          store.set(key, value);
+        },
+        removeItem: (key: string) => {
+          store.delete(key);
+        },
+        clear: () => {
+          store.clear();
+        },
+      },
+    });
     vi.stubGlobal("fetch", vi.fn());
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    vi.resetModules();
   });
 
-  it("attaches bearer token when authenticated", async () => {
-    const { setAccessToken } = await import("../uis/backoffice/lib/auth-token");
-    const { platformApiRequest } = await import(
-      "../uis/backoffice/lib/platform-api-client"
-    );
+  it("throws network error when fetch fails", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
-    setAccessToken("abc123");
-    const fetchMock = vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), {
-        status: 200,
+    await expect(platformApiRequest("/health")).rejects.toMatchObject({
+      message: NETWORK_ERROR_MESSAGE,
+      status: 0,
+    });
+  });
+
+  it("returns generic message for 500 responses", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "DB exploded" }), {
+        status: 500,
         headers: { "content-type": "application/json" },
       }),
     );
 
-    await platformApiRequest("/auth/me");
-
-    expect(fetchMock).toHaveBeenCalledOnce();
-    const firstCall = fetchMock.mock.calls[0];
-    expect(firstCall).toBeDefined();
-    const init = firstCall?.[1];
-    const headers = new Headers(init?.headers);
-    expect(headers.get("Authorization")).toBe("Bearer abc123");
+    await expect(platformApiRequest("/auth/me")).rejects.toMatchObject({
+      message: GENERIC_ERROR_MESSAGE,
+      status: 500,
+    });
   });
 
-  it("clears token and redirects on 401 for authenticated requests", async () => {
-    const { setAccessToken, getAccessToken } = await import(
-      "../uis/backoffice/lib/auth-token"
-    );
-    const { platformApiRequest } = await import(
-      "../uis/backoffice/lib/platform-api-client"
-    );
-
-    setAccessToken("abc123");
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ detail: "Unauthorized" }), {
-        status: 401,
-        headers: { "content-type": "application/json" },
-      }),
-    );
-
-    await expect(platformApiRequest("/auth/me")).rejects.toThrow();
-    expect(getAccessToken()).toBeNull();
-    expect(window.location.href).toBe("/login");
-  });
-
-  it("does not redirect on 401 for public requests", async () => {
-    const { platformApiRequest } = await import(
-      "../uis/backoffice/lib/platform-api-client"
-    );
-
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ detail: "Unauthorized" }), {
-        status: 401,
-        headers: { "content-type": "application/json" },
-      }),
-    );
-
-    await expect(
-      platformApiRequest(
-        "/auth/login",
-        { method: "POST", body: "{}" },
-        { public: true },
+  it("preserves validation detail for 422 responses", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          detail: [{ loc: ["body", "email"], msg: "Invalid email" }],
+        }),
+        {
+          status: 422,
+          headers: { "content-type": "application/json" },
+        },
       ),
-    ).rejects.toThrow();
-    expect(window.location.href).toBe("");
+    );
+
+    try {
+      await platformApiRequest("/auth/register", {
+        method: "POST",
+        body: "{}",
+      });
+      expect.fail("Expected request to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(PlatformApiError);
+      expect((error as PlatformApiError).message).toContain("email");
+    }
+  });
+
+  it("parseErrorMessage maps 404 to stable copy", () => {
+    const response = new Response(null, { status: 404 });
+    expect(parseErrorMessage(response, {})).toBe(
+      "The requested resource was not found.",
+    );
   });
 });

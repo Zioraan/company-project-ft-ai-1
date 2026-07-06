@@ -4,11 +4,12 @@ import { getSuppliers } from "@/services/suppliers";
 
 export default async function SuppliersPage() {
   let initialData;
+  let initialError: string | undefined;
 
   try {
     initialData = await getSuppliers();
   } catch {
-    initialData = undefined;
+    initialError = "Unable to load suppliers. Please try again.";
   }
 
   return (
@@ -21,7 +22,10 @@ export default async function SuppliersPage() {
         </section>
       }
     >
-      <SupplierDirectoryClient initialData={initialData} />
+      <SupplierDirectoryClient
+        initialData={initialData}
+        initialError={initialError}
+      />
     </Suspense>
   );
 }

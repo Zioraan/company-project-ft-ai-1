@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import clear_settings_cache, get_settings
+from app.core.exceptions import register_exception_handlers
 from app.routers.auth import router as auth_router
 from app.routers.incidents import router as incidents_router
 from app.routers.suppliers import router as suppliers_router
@@ -26,7 +27,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     )
     clear_settings_cache()
     get_settings()
-    seed_suppliers(SUPPLIERS_SEED)
+    try:
+        seed_suppliers(SUPPLIERS_SEED)
+    except Exception:
+        logging.exception("Failed to seed suppliers during startup")
+        raise
     yield
 
 
@@ -52,6 +57,8 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(incidents_router)
 app.include_router(suppliers_router)
+
+register_exception_handlers(app)
 
 
 @app.get("/health")

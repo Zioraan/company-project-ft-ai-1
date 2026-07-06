@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.core.dependencies import get_current_user
-from app.core.email import FORGOT_PASSWORD_MESSAGE, send_password_reset_email
+from app.core.email import (
+    FORGOT_PASSWORD_MESSAGE,
+    EmailDeliveryError,
+    send_password_reset_email,
+)
 from app.core.security import (
     create_access_token,
     create_password_reset_token,
@@ -27,6 +32,10 @@ from app.store import reset_tokens_store, users_store
 from app.store.users_store import DuplicateEmailError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+logger = logging.getLogger(__name__)
+
+REGISTRATION_CONFLICT_MESSAGE = "Registration could not be completed."
 
 
 @router.post("/login", response_model=TokenSchema)
@@ -50,7 +59,7 @@ def register_route(payload: UserCreateSchema) -> TokenSchema:
     except DuplicateEmailError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
+            detail=REGISTRATION_CONFLICT_MESSAGE,
         ) from exc
 
     access_token = create_access_token(subject=user.id)
@@ -96,7 +105,10 @@ def forgot_password_route(payload: ForgotPasswordSchema) -> MessageSchema:
         reset_tokens_store.create_reset_token_record(jti, user.id, expires_at)
         separator = "&" if "?" in settings.password_reset_base_url else "?"
         reset_url = f"{settings.password_reset_base_url}{separator}token={token}"
-        send_password_reset_email(to_email=user.email, reset_url=reset_url)
+        try:
+            send_password_reset_email(to_email=user.email, reset_url=reset_url)
+        except EmailDeliveryError:
+            logger.exception("forgot_password_email_delivery_failed")
 
     return MessageSchema(message=FORGOT_PASSWORD_MESSAGE)
 

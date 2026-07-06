@@ -63,9 +63,14 @@ export function LoginForm() {
       </label>
 
       {error ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-          {error}
-        </p>
+        <div className="space-y-1">
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+            {error}
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Check your email and password, then try signing in again.
+          </p>
+        </div>
       ) : null}
 
       <button

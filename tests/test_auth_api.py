@@ -263,3 +263,45 @@ def test_users_db_path_override(tmp_path, monkeypatch: pytest.MonkeyPatch) -> No
 
     reset_users_db()
     assert get_users_db_path() == custom_path
+
+
+def test_register_duplicate_email_returns_generic_conflict(client: TestClient) -> None:
+    email = "duplicate.conflict@example.com"
+    client.post("/auth/register", json={**SAMPLE_USER, "email": email})
+
+    response = client.post("/auth/register", json={**SAMPLE_USER, "email": email})
+
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert email not in detail
+    assert detail == "Registration could not be completed."
+
+
+def test_create_user_duplicate_email_returns_generic_conflict(client: TestClient) -> None:
+    email = "duplicate.user@example.com"
+    client.post("/users", json={"email": email, "password": "securepass123"})
+
+    response = client.post("/users", json={"email": email, "password": "securepass123"})
+
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert email not in detail
+
+
+def test_unhandled_exception_returns_generic_500(client: TestClient, monkeypatch) -> None:
+    def boom(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("internal failure")
+
+    monkeypatch.setattr(
+        "app.routers.auth.users_store.verify_user_credentials",
+        boom,
+    )
+
+    response = client.post(
+        "/auth/login",
+        json={"email": "x@example.com", "password": "securepass123"},
+    )
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "An unexpected error occurred."
+    assert "internal failure" not in response.text

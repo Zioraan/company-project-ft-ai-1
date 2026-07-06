@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { ApiNote } from "@/types/api";
 
+import { ErrorState } from "@/components/ui/ErrorState";
+
 interface NotesPanelProps {
   notes: ApiNote[];
   loading: boolean;
@@ -10,10 +12,20 @@ interface NotesPanelProps {
   error: string | null;
   onAdd: (content: string) => Promise<void>;
   onDelete: (noteId: string) => Promise<void>;
+  onRetry?: () => void;
 }
 
-export function NotesPanel({ notes, loading, saving, error, onAdd, onDelete }: NotesPanelProps) {
+export function NotesPanel({
+  notes,
+  loading,
+  saving,
+  error,
+  onAdd,
+  onDelete,
+  onRetry,
+}: NotesPanelProps) {
   const [content, setContent] = useState<string>("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -21,8 +33,15 @@ export function NotesPanel({ notes, loading, saving, error, onAdd, onDelete }: N
       return;
     }
 
-    await onAdd(content.trim());
-    setContent("");
+    setSubmitError(null);
+    try {
+      await onAdd(content.trim());
+      setContent("");
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to add note.",
+      );
+    }
   };
 
   return (
@@ -46,17 +65,40 @@ export function NotesPanel({ notes, loading, saving, error, onAdd, onDelete }: N
         </button>
       </form>
 
-      {loading && <p className="mt-3 text-sm text-slate-600">Loading notes...</p>}
-      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+      {submitError ? (
+        <p className="mt-3 text-sm text-red-700" role="alert">
+          {submitError}
+        </p>
+      ) : null}
 
-      {!loading && notes.length === 0 && <p className="mt-3 text-sm text-slate-600">No notes yet.</p>}
+      {loading ? (
+        <p className="mt-3 text-sm text-slate-600">Loading notes...</p>
+      ) : null}
+
+      {error ? (
+        <div className="mt-3">
+          <ErrorState
+            message={error}
+            onRetry={onRetry}
+            retryLabel="Reload notes"
+          />
+        </div>
+      ) : null}
+
+      {!loading && !error && notes.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-600">No notes yet.</p>
+      ) : null}
 
       <ul className="mt-4 space-y-2">
         {notes.map((note) => (
           <li key={note.id} className="rounded border border-slate-200 p-3">
             <p className="text-sm text-slate-700">{note.content}</p>
             <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span>{new Date(note.created_at).toLocaleString()}</span>
+              <span>
+                {note.created_at
+                  ? new Date(note.created_at).toLocaleString()
+                  : "—"}
+              </span>
               <button
                 onClick={() => void onDelete(note.id)}
                 disabled={saving}

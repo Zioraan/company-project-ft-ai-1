@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { IncidentAnalysisSummary } from "@/components/incidents/IncidentAnalysisSummary";
 import { IncidentUpload } from "@/components/incidents/IncidentUpload";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { IncidentsApiError } from "@/lib/incidents-api-client";
 import {
   analyzeIncidents,
@@ -18,8 +19,10 @@ export function IncidentAnalysisClient() {
   const [result, setResult] = useState<IncidentAnalysisResult | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [lastUploadFile, setLastUploadFile] = useState<File | null>(null);
 
   async function handleFileSelected(file: File) {
+    setLastUploadFile(file);
     setRequestState("loading");
     setErrorMessage(null);
     setExportError(null);
@@ -87,12 +90,15 @@ export function IncidentAnalysisClient() {
       ) : null}
 
       {requestState === "error" && errorMessage ? (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-300 bg-red-50 p-5 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
-        >
-          {errorMessage}
-        </div>
+        <ErrorState
+          message={errorMessage}
+          onRetry={
+            lastUploadFile
+              ? () => void handleFileSelected(lastUploadFile)
+              : undefined
+          }
+          retryLabel="Try upload again"
+        />
       ) : null}
 
       {requestState === "success" && result ? (
@@ -115,12 +121,11 @@ export function IncidentAnalysisClient() {
           </div>
 
           {exportError ? (
-            <div
-              role="alert"
-              className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
-            >
-              {exportError}
-            </div>
+            <ErrorState
+              message={exportError}
+              onRetry={() => void handleExport()}
+              retryLabel="Retry export"
+            />
           ) : null}
 
           <IncidentAnalysisSummary result={result} />

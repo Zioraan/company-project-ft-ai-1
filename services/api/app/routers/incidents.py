@@ -10,6 +10,7 @@ from domain.incident_analysis import (
     AnalysisResult,
     CsvParseError,
     EmptyFileError,
+    IncidentAnalysisError,
     MissingHeaderError,
     NoDataRowsError,
     analyze_incidents,
@@ -87,6 +88,30 @@ def _validate_upload(file: UploadFile) -> None:
         )
 
 
+def _raise_incident_load_error(exc: IncidentAnalysisError) -> None:
+    if isinstance(exc, EmptyFileError):
+        raise HTTPException(status_code=400, detail="CSV file is empty.") from exc
+    if isinstance(exc, MissingHeaderError):
+        raise HTTPException(
+            status_code=400,
+            detail="CSV file is missing required columns or has an invalid header.",
+        ) from exc
+    if isinstance(exc, NoDataRowsError):
+        raise HTTPException(
+            status_code=400,
+            detail="CSV file contains no data rows.",
+        ) from exc
+    if isinstance(exc, CsvParseError):
+        raise HTTPException(
+            status_code=422,
+            detail="Unable to parse CSV content.",
+        ) from exc
+    raise HTTPException(
+        status_code=400,
+        detail="Unable to process the uploaded CSV file.",
+    ) from exc
+
+
 @router.post(
     "/analyze",
     response_model=AnalysisResponseSchema,
@@ -107,14 +132,8 @@ async def analyze_incident_file(file: UploadFile = File(...)) -> AnalysisRespons
             io.BytesIO(raw),
             source_name=file.filename or "uploaded.csv",
         )
-    except EmptyFileError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except MissingHeaderError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except NoDataRowsError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except CsvParseError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except IncidentAnalysisError as exc:
+        _raise_incident_load_error(exc)
 
     result = analyze_incidents(rows, source_name=source_name)
     save_analysis(result)

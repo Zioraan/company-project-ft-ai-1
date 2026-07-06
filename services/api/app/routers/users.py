@@ -17,6 +17,9 @@ from app.store.users_store import DuplicateEmailError
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+CREATE_CONFLICT_MESSAGE = "A user with this email already exists."
+UPDATE_CONFLICT_MESSAGE = "Update could not be completed."
+
 
 @router.post("/", response_model=UserResponseSchema, status_code=status.HTTP_201_CREATED)
 def create_user_route(payload: UserCreateSchema) -> UserResponseSchema:
@@ -25,7 +28,7 @@ def create_user_route(payload: UserCreateSchema) -> UserResponseSchema:
     except DuplicateEmailError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
+            detail=CREATE_CONFLICT_MESSAGE,
         ) from exc
 
 
@@ -64,10 +67,8 @@ def update_user_route(
     except DuplicateEmailError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
+            detail=UPDATE_CONFLICT_MESSAGE,
         ) from exc
-
-    if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return user
 

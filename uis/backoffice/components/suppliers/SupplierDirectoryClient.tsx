@@ -4,8 +4,10 @@ import { useState } from "react";
 import { SupplierCreateForm } from "@/components/suppliers/SupplierCreateForm";
 import { SupplierFiltersBar } from "@/components/suppliers/SupplierFiltersBar";
 import { SupplierTable } from "@/components/suppliers/SupplierTable";
+import { AsyncState } from "@/components/ui/AsyncState";
 import { useSupplierFilters } from "@/hooks/useSupplierFilters";
 import { useSuppliers } from "@/hooks/useSuppliers";
+import { SuppliersApiError } from "@/lib/suppliers-api-client";
 import {
   createSupplier,
   deleteSupplier,
@@ -16,10 +18,25 @@ import type { Supplier, SupplierStatus } from "@/types/suppliers";
 
 interface SupplierDirectoryClientProps {
   initialData?: Supplier[];
+  initialError?: string;
+}
+
+async function refetchWithWarning(
+  refetch: () => Promise<unknown>,
+  setActionError: (message: string | null) => void,
+) {
+  try {
+    await refetch();
+  } catch {
+    setActionError(
+      "Changes were saved but the list could not be refreshed. Please try again.",
+    );
+  }
 }
 
 export function SupplierDirectoryClient({
   initialData,
+  initialError,
 }: SupplierDirectoryClientProps) {
   const { filters, setFilters } = useSupplierFilters();
   const { suppliers, loading, error, refetch } = useSuppliers(filters, {
@@ -28,10 +45,20 @@ export function SupplierDirectoryClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const listError = error ?? initialError ?? null;
+
   const handleRateUpdate = async (supplierId: string, monthlyRate: number) => {
     setActionError(null);
-    await updateSupplierRate(supplierId, { monthly_rate: monthlyRate });
-    await refetch();
+    try {
+      await updateSupplierRate(supplierId, { monthly_rate: monthlyRate });
+      await refetchWithWarning(refetch, setActionError);
+    } catch (err) {
+      setActionError(
+        err instanceof SuppliersApiError
+          ? err.message
+          : "Failed to update supplier rate.",
+      );
+    }
   };
 
   const handleStatusUpdate = async (
@@ -39,8 +66,16 @@ export function SupplierDirectoryClient({
     status: SupplierStatus,
   ) => {
     setActionError(null);
-    await updateSupplierStatus(supplierId, { status });
-    await refetch();
+    try {
+      await updateSupplierStatus(supplierId, { status });
+      await refetchWithWarning(refetch, setActionError);
+    } catch (err) {
+      setActionError(
+        err instanceof SuppliersApiError
+          ? err.message
+          : "Failed to update supplier status.",
+      );
+    }
   };
 
   const handleDelete = async (supplierId: string) => {
@@ -49,10 +84,12 @@ export function SupplierDirectoryClient({
 
     try {
       await deleteSupplier(supplierId);
-      await refetch();
+      await refetchWithWarning(refetch, setActionError);
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : "Failed to delete supplier.",
+        err instanceof SuppliersApiError
+          ? err.message
+          : "Failed to delete supplier.",
       );
     } finally {
       setDeletingId(null);
@@ -73,7 +110,7 @@ export function SupplierDirectoryClient({
         <SupplierCreateForm
           onSubmit={async (input) => {
             await createSupplier(input);
-            await refetch();
+            await refetchWithWarning(refetch, setActionError);
           }}
         />
 
@@ -89,22 +126,27 @@ export function SupplierDirectoryClient({
             </span>
           </div>
 
-          {loading && (
-            <p className="text-sm text-slate-700 dark:text-slate-300">
-              Loading suppliers...
-            </p>
-          )}
-          {error && (
-            <p className="text-sm text-red-700 dark:text-red-400" role="alert">
-              {error}
-            </p>
-          )}
-          {actionError && (
-            <p className="mb-3 text-sm text-red-700 dark:text-red-400" role="alert">
+          {actionError ? (
+            <p
+              className="mb-3 text-sm text-red-700 dark:text-red-400"
+              role="alert"
+            >
               {actionError}
             </p>
-          )}
-          {!loading && !error && (
+          ) : null}
+
+          <AsyncState
+            loading={loading}
+            error={listError}
+            onRetry={() => void refetch()}
+            backHref="/"
+            backLabel="Back to dashboard"
+            loadingFallback={
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                Loading suppliers...
+              </p>
+            }
+          >
             <SupplierTable
               suppliers={suppliers}
               onRateUpdate={handleRateUpdate}
@@ -112,7 +154,7 @@ export function SupplierDirectoryClient({
               onDelete={handleDelete}
               deletingId={deletingId}
             />
-          )}
+          </AsyncState>
         </section>
       </div>
     </section>

@@ -26,7 +26,9 @@ __all__ = [
 
 
 class DuplicateEmailError(Exception):
-    """Raised when creating a user with an email that already exists."""
+    """Raised when creating or updating a user with an email that already exists."""
+
+    MESSAGE = "Email already registered."
 
 
 def _utc_now() -> datetime:
@@ -59,7 +61,7 @@ def get_user_document_by_email(email: str) -> dict[str, Any] | None:
 
 def create_user(payload: UserCreateSchema) -> UserResponseSchema:
     if get_user_document_by_email(payload.email) is not None:
-        raise DuplicateEmailError(f"User with email {payload.email} already exists.")
+        raise DuplicateEmailError(DuplicateEmailError.MESSAGE)
 
     table = get_users_table()
     now = _utc_now()
@@ -112,7 +114,7 @@ def update_user(
         normalized = payload.email.lower()
         existing = get_user_document_by_email(normalized)
         if existing is not None and existing.get("id") != user_id:
-            raise DuplicateEmailError(f"User with email {payload.email} already exists.")
+            raise DuplicateEmailError(DuplicateEmailError.MESSAGE)
         document["email"] = normalized
 
     if payload.password is not None:

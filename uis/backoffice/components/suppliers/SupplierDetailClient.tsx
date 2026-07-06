@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { SupplierDetailCard } from "@/components/suppliers/SupplierDetailCard";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useSupplierDetail } from "@/hooks/useSupplierDetail";
 import type { Supplier } from "@/types/suppliers";
 
@@ -15,8 +16,16 @@ export function SupplierDetailClient({
   initialSupplier,
 }: SupplierDetailClientProps) {
   const router = useRouter();
-  const { supplier, loading, saving, error, saveRate, saveStatus, removeSupplier } =
-    useSupplierDetail(supplierId, { initialSupplier });
+  const {
+    supplier,
+    loading,
+    saving,
+    error,
+    refetch,
+    saveRate,
+    saveStatus,
+    removeSupplier,
+  } = useSupplierDetail(supplierId, { initialSupplier });
 
   if (loading) {
     return (
@@ -31,9 +40,12 @@ export function SupplierDetailClient({
   if (error || !supplier) {
     return (
       <section className="px-4 py-6 md:px-8">
-        <p className="text-sm text-red-700 dark:text-red-400" role="alert">
-          {error ?? "Supplier not found."}
-        </p>
+        <ErrorState
+          message={error ?? "Supplier not found."}
+          onRetry={() => void refetch()}
+          backHref="/suppliers"
+          backLabel="Back to directory"
+        />
       </section>
     );
   }
@@ -41,11 +53,14 @@ export function SupplierDetailClient({
   return (
     <section className="px-4 py-6 md:px-8">
       <div className="mx-auto max-w-4xl">
-        {error && (
-          <p className="mb-4 text-sm text-red-700 dark:text-red-400" role="alert">
+        {error ? (
+          <p
+            className="mb-4 text-sm text-red-700 dark:text-red-400"
+            role="alert"
+          >
             {error}
           </p>
-        )}
+        ) : null}
         <SupplierDetailCard
           supplier={supplier}
           saving={saving}
@@ -56,8 +71,12 @@ export function SupplierDetailClient({
             await saveStatus(status);
           }}
           onDelete={async () => {
-            await removeSupplier();
-            router.push("/suppliers");
+            try {
+              await removeSupplier();
+              router.push("/suppliers");
+            } catch {
+              // save error surfaced via hook error state
+            }
           }}
         />
       </div>

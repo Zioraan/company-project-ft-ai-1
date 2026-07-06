@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 
+import { ErrorState } from "@/components/ui/ErrorState";
 import { PlatformApiError } from "@/lib/platform-api-client";
 import { getCurrentUser, updateProfile } from "@/services/auth";
 
@@ -13,45 +14,36 @@ export function ProfileForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    setError(null);
 
-    async function loadProfile() {
-      setLoading(true);
-      setError(null);
-      try {
-        const user = await getCurrentUser();
-        if (!active) {
-          return;
-        }
-        setUserId(user.id);
-        setName(user.name);
-        setEmail(user.email);
-      } catch (loadError) {
-        if (!active) {
-          return;
-        }
-        const message =
-          loadError instanceof PlatformApiError
-            ? loadError.message
-            : "Unable to load profile.";
-        setError(message);
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
+    try {
+      const user = await getCurrentUser();
+      setUserId(user.id);
+      setName(user.name);
+      setEmail(user.email);
+    } catch (loadErr) {
+      const message =
+        loadErr instanceof PlatformApiError
+          ? loadErr.message
+          : "Unable to load profile.";
+      setLoadError(message);
+      setUserId(null);
+    } finally {
+      setLoading(false);
     }
-
-    void loadProfile();
-    return () => {
-      active = false;
-    };
   }, []);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,13 +72,30 @@ export function ProfileForm() {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600 dark:text-slate-400">Loading profile...</p>;
+    return (
+      <p className="text-sm text-slate-600 dark:text-slate-400">
+        Loading profile...
+      </p>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <ErrorState
+        message={loadError}
+        onRetry={() => void loadProfile()}
+        backHref="/"
+        backLabel="Back to dashboard"
+      />
+    );
   }
 
   return (
     <form className="max-w-lg space-y-4" onSubmit={handleSubmit}>
       <label className="block space-y-1 text-sm">
-        <span className="font-medium text-slate-700 dark:text-slate-300">Name</span>
+        <span className="font-medium text-slate-700 dark:text-slate-300">
+          Name
+        </span>
         <input
           className={inputClassName}
           type="text"
@@ -96,7 +105,9 @@ export function ProfileForm() {
       </label>
 
       <label className="block space-y-1 text-sm">
-        <span className="font-medium text-slate-700 dark:text-slate-300">Email</span>
+        <span className="font-medium text-slate-700 dark:text-slate-300">
+          Email
+        </span>
         <input
           className={inputClassName}
           type="email"

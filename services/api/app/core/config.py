@@ -32,6 +32,15 @@ def _require_secret_key() -> str:
     return secret
 
 
+def _parse_positive_int(raw: str, env_name: str) -> int:
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"{env_name} must be a positive integer, got {raw!r}."
+        ) from exc
+
+
 @lru_cache
 def get_settings() -> Settings:
     expire_raw = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
@@ -39,9 +48,15 @@ def get_settings() -> Settings:
     resend_key = (os.environ.get("RESEND_API_KEY") or "").strip() or None
     return Settings(
         jwt_secret_key=_require_secret_key(),
-        access_token_expire_minutes=int(expire_raw),
+        access_token_expire_minutes=_parse_positive_int(
+            expire_raw,
+            "ACCESS_TOKEN_EXPIRE_MINUTES",
+        ),
         jwt_algorithm=os.environ.get("JWT_ALGORITHM", "HS256"),
-        password_reset_expire_minutes=int(reset_expire_raw),
+        password_reset_expire_minutes=_parse_positive_int(
+            reset_expire_raw,
+            "PASSWORD_RESET_EXPIRE_MINUTES",
+        ),
         password_reset_base_url=os.environ.get(
             "PASSWORD_RESET_BASE_URL",
             "http://localhost:3000/reset-password",

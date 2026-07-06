@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ApiError } from "@/lib/api-client";
 import type { CandidateFormValues } from "@/types/domain";
 
 interface CandidateFormProps {
@@ -29,8 +30,12 @@ export function CandidateForm({ title, initialValues, submitLabel, onSubmit }: C
     try {
       await onSubmit(form);
       setSuccess("Operation completed successfully.");
-    } catch {
-      setError("Request failed. Please review input values and try again.");
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Request failed. Please review input values and try again.";
+      setError(message);
     } finally {
       setSubmitting(false);
     }

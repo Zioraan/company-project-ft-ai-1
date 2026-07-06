@@ -85,9 +85,15 @@ export function ChangePasswordForm() {
       </label>
 
       {error ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-          {error}
-        </p>
+        <div className="space-y-2">
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+            {error}
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            If your current password is wrong or your session expired, sign in
+            again and retry.
+          </p>
+        </div>
       ) : null}
 
       {success ? (
