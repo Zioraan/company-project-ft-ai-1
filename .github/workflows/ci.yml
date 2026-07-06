@@ -48,6 +48,8 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Run Python tests
+        env:
+          DATABASE_URL: sqlite://
         run: pytest
 
       - name: Run quality gate

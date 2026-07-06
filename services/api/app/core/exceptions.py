@@ -31,9 +31,18 @@ def register_exception_handlers(app: FastAPI) -> None:
         _request: Request,
         exc: RequestValidationError,
     ) -> JSONResponse:
+        errors = []
+        for error in exc.errors():
+            sanitized = dict(error)
+            ctx = sanitized.get("ctx")
+            if isinstance(ctx, dict):
+                sanitized["ctx"] = {
+                    key: str(value) for key, value in ctx.items()
+                }
+            errors.append(sanitized)
         return JSONResponse(
             status_code=422,
-            content={"detail": exc.errors()},
+            content={"detail": errors},
         )
 
     @app.exception_handler(Exception)

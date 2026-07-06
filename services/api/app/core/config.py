@@ -20,6 +20,17 @@ class Settings:
     password_reset_base_url: str
     resend_api_key: str | None
     resend_from_email: str
+    database_url: str
+
+
+def _require_database_url() -> str:
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        raise RuntimeError(
+            "DATABASE_URL environment variable is required. "
+            "Set it in services/api/.env to your Supabase PostgreSQL connection string."
+        )
+    return url
 
 
 def _require_secret_key() -> str:
@@ -66,6 +77,7 @@ def get_settings() -> Settings:
             "RESEND_FROM_EMAIL",
             "onboarding@resend.dev",
         ),
+        database_url=_require_database_url(),
     )
 
 

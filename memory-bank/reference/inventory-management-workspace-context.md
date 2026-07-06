@@ -6,7 +6,7 @@ This document is a workspace translation aid for the implementation agent. It is
 
 Use these sources together:
 
-1. `memory-bank/documentation/backend-inventory-management-CONTEXT.md`
+1. `memory-bank/reference/backend-inventory-management-CONTEXT.md`
 2. The backend eval screenshots
 3. The frontend eval screenshots
 4. Root governance in `AGENTS.md` and `.agents/rules/*`

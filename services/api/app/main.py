@@ -10,13 +10,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import clear_settings_cache, get_settings
+from app.core.database import get_engine, init_inventory_db
 from app.core.exceptions import register_exception_handlers
 from app.routers.auth import router as auth_router
 from app.routers.incidents import router as incidents_router
+from app.routers.inventory import router as inventory_router
 from app.routers.suppliers import router as suppliers_router
 from app.routers.users import router as users_router
+from app.seed.inventory_seed import INVENTORY_SEED
 from app.seed.suppliers_seed import SUPPLIERS_SEED
+from app.store import inventory_store
 from app.store.suppliers_store import seed_suppliers
+from sqlmodel import Session
 
 
 @asynccontextmanager
@@ -29,8 +34,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     get_settings()
     try:
         seed_suppliers(SUPPLIERS_SEED)
+        init_inventory_db()
+        with Session(get_engine()) as session:
+            inventory_store.seed_inventory(session, INVENTORY_SEED)
     except Exception:
-        logging.exception("Failed to seed suppliers during startup")
+        logging.exception("Failed to seed data during startup")
         raise
     yield
 
@@ -57,6 +65,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(incidents_router)
 app.include_router(suppliers_router)
+app.include_router(inventory_router)
 
 register_exception_handlers(app)
 

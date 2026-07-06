@@ -33,27 +33,34 @@ services/api/
 ├── app/
 │   ├── main.py                 # FastAPI entry, CORS, router registration
 │   ├── core/
-│   │   ├── config.py           # JWT, Resend, and env settings
+│   │   ├── config.py           # JWT, Resend, DATABASE_URL, and env settings
 │   │   ├── security.py         # Password hashing, JWT create/decode
 │   │   ├── dependencies.py     # get_current_user, OAuth2PasswordBearer
+│   │   ├── database.py         # SQLModel engine, get_db, inventory table init
 │   │   ├── email.py            # Resend delivery + dev console fallback for reset links
+│   │   ├── exceptions.py       # Global HTTP/validation/unhandled handlers
 │   │   └── tinydb.py           # TinyDB connections (suppliers + users)
+│   ├── models/
+│   │   └── inventory.py        # Asset, AssetEntry, AssetExit SQLModel tables
 │   ├── routers/
 │   │   ├── auth.py             # login, register, me, change/forgot/reset password
 │   │   ├── users.py            # /users CRUD
 │   │   ├── suppliers.py        # /api/suppliers/* (protected)
-│   │   └── incidents.py        # /api/incidents/* (protected)
+│   │   ├── incidents.py        # /api/incidents/* (protected)
+│   │   └── inventory.py        # /inventory/* (protected, SQLModel)
 │   ├── schemas/
 │   │   ├── auth.py             # Login, token schemas
 │   │   ├── users.py            # User request/response schemas
 │   │   ├── suppliers.py
-│   │   └── incidents.py
+│   │   ├── incidents.py
+│   │   └── inventory.py        # Asset/order request/response schemas
 │   ├── store/
 │   │   ├── users_store.py      # User persistence (TinyDB)
 │   │   ├── reset_tokens_store.py  # Single-use password reset tokens (TinyDB)
 │   │   ├── suppliers_store.py
+│   │   ├── inventory_store.py  # Inventory CRUD + stock computation (SQLModel)
 │   │   └── analysis_store.py
-│   └── seed/                   # Supplier idempotent seeding
+│   └── seed/                   # Supplier + inventory idempotent seeding
 ├── domain/
 │   └── incident_analysis.py    # CSV analysis business logic
 ├── data/                       # TinyDB JSON files (gitignored at runtime)
@@ -74,14 +81,14 @@ services/api/
 | Path | Purpose |
 |------|---------|
 | `uis/website/` | Public marketing and signup surface |
-| `uis/backoffice/` | Internal ops UI (candidates, incidents, suppliers) |
+| `uis/backoffice/` | Internal ops UI (candidates, incidents, suppliers, inventory) |
 
-Backoffice calls the platform API via `lib/platform-api-client.ts` (Bearer token + 401 handling). Supplier and incident modules wrap this client. The external tracker API uses `lib/api-client.ts` without platform JWT.
+Backoffice calls the platform API via `lib/platform-api-client.ts` (Bearer token + 401 handling). Supplier, incident, and inventory modules wrap this client. The external tracker API uses `lib/api-client.ts` without platform JWT.
 
 ### `uis/backoffice/` auth routes
 
 - Public: `/login`, `/register`, `/forgot-password`, `/reset-password` (`app/(public)/`)
-- Protected: `/`, `/candidates/*`, `/suppliers/*`, `/incidents/*`, `/account/*` (`app/(protected)/` + `AuthGuard`)
+- Protected: `/`, `/candidates/*`, `/suppliers/*`, `/inventory/*`, `/incidents/*`, `/account/*` (`app/(protected)/` + `AuthGuard`)
 
 Key modules: `lib/auth-token.ts`, `services/auth.ts`, `components/auth/*`
 
@@ -96,7 +103,9 @@ Key modules: `lib/auth-token.ts`, `services/auth.ts`, `components/auth/*`
 | `tests/platform-api-client.test.ts` | Bearer header + 401 session clear |
 | `tests/test_suppliers_api.py` | Supplier API regression (authenticated) |
 | `tests/test_incidents_api.py` | Incident API regression (authenticated) |
+| `tests/test_inventory_api.py` | Inventory API regression (SQLModel + auth) |
 | `tests/test_incident_analysis.py` | Domain logic unit tests |
+| `tests/inventory-mappers.test.ts` | Inventory label/stock mapper tests |
 
 ## Key documentation
 
@@ -106,6 +115,7 @@ Key modules: `lib/auth-token.ts`, `services/auth.ts`, `components/auth/*`
 | `docs/eval-traceability-auth-frontend.md` | AUTH-02 + AUTH-03 eval evidence |
 | `docs/eval-traceability-suppliers.md` | Supplier milestone evidence |
 | `docs/eval-traceability-incidents.md` | Incident milestone evidence |
+| `docs/eval-traceability-inventory.md` | Inventory ORM + Supabase milestone evidence |
 | `memory-bank/progress.md` | Delivery status and completed milestones |
 | `memory-bank/techContext.md` | Stack, constraints, and architecture patterns |
 

@@ -120,6 +120,15 @@
    - Scripts: `analyze.py` input validation, scoped exceptions, export exit codes; `tests/test_analyze_cli.py`
    - Eval traceability: `docs/eval-traceability-error-handling.md`; audit checkboxes in `memory-bank/documentation/error-handling-audit.md`
    - Deferred: `skills/data-analysis/scripts/pandas_clean.py` (snippet only)
+40. Implemented Inventory Management milestone (Milestone 5 ORM + Supabase):
+   - Dual-database FastAPI layer: TinyDB auth/users + SQLModel inventory on Supabase PostgreSQL (`DATABASE_URL`)
+   - ORM models `Asset`, `AssetEntry`, `AssetExit` at `services/api/app/models/inventory.py`; Pydantic schemas at `app/schemas/inventory.py`
+   - Session dependency `get_db` at `app/core/database.py`; inventory router at `/inventory/*` with computed `current_stock`
+   - Idempotent seed at `app/seed/inventory_seed.py`; API tests at `tests/test_inventory_api.py`
+   - Backoffice inventory UI: `/inventory/products`, `/inventory/orders`, inbound/outbound forms, `StockStatusBadge`, nav links
+   - Service layer at `uis/backoffice/services/inventory.ts`; mapper tests at `tests/inventory-mappers.test.ts`
+   - Eval traceability at `docs/eval-traceability-inventory.md`; plan archived at `memory-bank/past-implementations/inventory-orm-implementation-plan.md`
+   - Inventory milestone contexts archived to `memory-bank/reference/` (`backend-inventory-management-CONTEXT.md`, `inventory-management-workspace-context.md`, `inventory-management-evals.md`)
 
 ## Next Steps
 

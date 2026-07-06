@@ -9,6 +9,8 @@ const links = [
   { href: "/", label: "Dashboard" },
   { href: "/candidates", label: "Talent Pipeline" },
   { href: "/suppliers", label: "Supplier Directory" },
+  { href: "/inventory/products", label: "Asset Inventory" },
+  { href: "/inventory/orders", label: "Asset Orders" },
   { href: "/incidents/analysis", label: "Incident Analysis" },
   { href: "/account/profile", label: "Account" },
 ];
