@@ -1,0 +1,542 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventEnvelope": {
+    "required": [
+      "eventId",
+      "timestamp",
+      "sessionId",
+      "userId",
+      "event_type",
+      "schemaVersion",
+      "requestId",
+      "properties"
+    ],
+    "fields": {
+      "eventId": {
+        "type": "string",
+        "description": "Unique event UUID."
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 UTC event timestamp."
+      },
+      "sessionId": {
+        "type": "string",
+        "description": "Opaque authenticated session identifier."
+      },
+      "userId": {
+        "type": "string",
+        "description": "TinyDB user UUID for the authenticated operator."
+      },
+      "event_type": {
+        "type": "string",
+        "description": "Entity-action taxonomy value."
+      },
+      "schemaVersion": {
+        "type": "string",
+        "description": "Version of the event schema."
+      },
+      "requestId": {
+        "type": "string",
+        "description": "Correlation id spanning UI and API work for a single operation."
+      },
+      "properties": {
+        "type": "object",
+        "description": "Event payload limited to the event allowlist."
+      }
+    }
+  },
+  "events": [
+    {
+      "event_type": "assignment_flow_started",
+      "description": "Authenticated operator opened the outbound assignment flow for an Asset.",
+      "hypothesis": "Assignment lead time starts before the AssignmentOrder is submitted, and friction may occur before API submission.",
+      "business_decision": "Decide whether outbound workflow UX or training is delaying onboarding asset delivery.",
+      "delivery_mode": "batch",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use UUIDs only for created_by and assigned_to_candidate when present; do not capture names or emails.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": false,
+          "description": "Selected Asset id if known when the flow starts."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": false,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value: valencia or miami."
+        },
+        {
+          "name": "flow_origin",
+          "type": "string",
+          "required": true,
+          "description": "Where the operator entered the flow from, such as asset_list or order_history."
+        }
+      ],
+      "allowlist": [
+        "asset_id",
+        "asset_category",
+        "office",
+        "flow_origin"
+      ]
+    },
+    {
+      "event_type": "assignment_order_failed",
+      "description": "AssignmentOrder creation failed because validation or stock rules blocked completion.",
+      "hypothesis": "Failed AssignmentOrders reveal whether onboarding delays are caused by insufficient stock or invalid inputs.",
+      "business_decision": "Decide whether to change stock policy, operator training, or form validation UX.",
+      "delivery_mode": "stream",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use UUIDs only; record normalized failure_reason codes rather than raw input or exception bodies.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": false,
+          "description": "Target Asset id if available."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": false,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": false,
+          "description": "Requested assignment quantity."
+        },
+        {
+          "name": "failure_reason",
+          "type": "string",
+          "required": true,
+          "description": "Normalized reason code such as insufficient_stock or missing_assigned_to."
+        },
+        {
+          "name": "assigned_to",
+          "type": "string",
+          "required": false,
+          "description": "Opaque employee UUID when the assignment target was supplied."
+        }
+      ],
+      "allowlist": [
+        "asset_id",
+        "asset_category",
+        "office",
+        "quantity",
+        "failure_reason",
+        "assigned_to"
+      ]
+    },
+    {
+      "event_type": "assignment_order_created",
+      "description": "AssignmentOrder was successfully created and stock was reduced through the supported workflow.",
+      "hypothesis": "Successful AssignmentOrders complete the lead-time measurement for onboarding asset delivery.",
+      "business_decision": "Decide which offices and asset categories need process changes to reduce assignment lead time.",
+      "delivery_mode": "stream",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use UUIDs only for assigned_to and created_by. No names or emails.",
+      "audit_requirement": "durable_for_software_licence",
+      "properties": [
+        {
+          "name": "assignment_order_id",
+          "type": "integer",
+          "required": true,
+          "description": "Created AssignmentOrder identifier."
+        },
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": true,
+          "description": "Assigned Asset identifier."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": true,
+          "description": "Assigned quantity."
+        },
+        {
+          "name": "assigned_to",
+          "type": "string",
+          "required": true,
+          "description": "Opaque employee UUID."
+        },
+        {
+          "name": "created_by",
+          "type": "string",
+          "required": true,
+          "description": "Opaque operator UUID."
+        },
+        {
+          "name": "lead_time_seconds",
+          "type": "integer",
+          "required": false,
+          "description": "Elapsed time from assignment_flow_started to order creation when correlation exists."
+        },
+        {
+          "name": "audit_required",
+          "type": "boolean",
+          "required": true,
+          "description": "True for software_licence assignments requiring a durable audit trail."
+        }
+      ],
+      "allowlist": [
+        "assignment_order_id",
+        "asset_id",
+        "asset_category",
+        "office",
+        "quantity",
+        "assigned_to",
+        "created_by",
+        "lead_time_seconds",
+        "audit_required"
+      ]
+    },
+    {
+      "event_type": "stock_threshold_triggered",
+      "description": "Asset stock reached or fell below its minimum threshold after a successful AssignmentOrder.",
+      "hypothesis": "Threshold breaches are an early warning before zero-stock events and should drive procurement action.",
+      "business_decision": "Decide whether procurement cadence or reorder points must change for a specific office or category.",
+      "delivery_mode": "stream",
+      "contains_sensitive_data": false,
+      "pii_strategy": "No direct PII.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": true,
+          "description": "Asset identifier."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value."
+        },
+        {
+          "name": "current_stock",
+          "type": "integer",
+          "required": true,
+          "description": "Available stock after the stock-changing operation."
+        },
+        {
+          "name": "min_stock_threshold",
+          "type": "integer",
+          "required": true,
+          "description": "Configured minimum threshold for the Asset."
+        },
+        {
+          "name": "trigger_source_event",
+          "type": "string",
+          "required": true,
+          "description": "Source event that caused the threshold breach, usually assignment_order_created."
+        },
+        {
+          "name": "trigger_source_order_id",
+          "type": "integer",
+          "required": true,
+          "description": "Identifier of the order that caused the threshold breach."
+        }
+      ],
+      "allowlist": [
+        "asset_id",
+        "asset_category",
+        "office",
+        "current_stock",
+        "min_stock_threshold",
+        "trigger_source_event",
+        "trigger_source_order_id"
+      ]
+    },
+    {
+      "event_type": "procurement_order_failed",
+      "description": "ProcurementOrder creation failed because validation or service rules blocked it.",
+      "hypothesis": "Failed ProcurementOrders reveal why replenishment work is delayed before stock is restored.",
+      "business_decision": "Decide whether procurement friction is caused by data quality, vendor setup, or operator workflow.",
+      "delivery_mode": "stream",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use created_by UUID only. Do not include vendor contacts or raw request payloads.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": false,
+          "description": "Target Asset id if known."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": false,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": false,
+          "description": "Requested procurement quantity."
+        },
+        {
+          "name": "vendor",
+          "type": "string",
+          "required": false,
+          "description": "Vendor name only when explicitly accepted by the event allowlist."
+        },
+        {
+          "name": "failure_reason",
+          "type": "string",
+          "required": true,
+          "description": "Normalized reason code such as invalid_quantity or unknown_vendor."
+        }
+      ],
+      "allowlist": [
+        "asset_id",
+        "asset_category",
+        "office",
+        "quantity",
+        "vendor",
+        "failure_reason"
+      ]
+    },
+    {
+      "event_type": "procurement_order_created",
+      "description": "ProcurementOrder was successfully created for an Asset.",
+      "hypothesis": "Consecutive ProcurementOrder events for the same Asset reveal whether procurement is reactive or proactive.",
+      "business_decision": "Decide whether reorder points and procurement cadence should be adjusted by office and category.",
+      "delivery_mode": "batch",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use created_by UUID only. Capture vendor name only, not contact details or free-form notes.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "procurement_order_id",
+          "type": "integer",
+          "required": true,
+          "description": "Created ProcurementOrder identifier."
+        },
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": true,
+          "description": "Asset identifier."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": true,
+          "description": "Procured quantity."
+        },
+        {
+          "name": "vendor",
+          "type": "string",
+          "required": true,
+          "description": "Vendor name."
+        },
+        {
+          "name": "created_by",
+          "type": "string",
+          "required": true,
+          "description": "Opaque operator UUID."
+        }
+      ],
+      "allowlist": [
+        "procurement_order_id",
+        "asset_id",
+        "asset_category",
+        "office",
+        "quantity",
+        "vendor",
+        "created_by"
+      ]
+    },
+    {
+      "event_type": "direct_stock_edit_rejected",
+      "description": "A direct request to edit Asset stock outside ProcurementOrder or AssignmentOrder was blocked.",
+      "hypothesis": "Rejected direct stock edits show where operators try to bypass the inventory integrity model.",
+      "business_decision": "Decide whether to improve permissions, training, or stock-management UX.",
+      "delivery_mode": "stream",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use operator UUID only. Do not capture raw request payloads.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": false,
+          "description": "Asset identifier when known."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": false,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": false,
+          "description": "Canonical office value when known."
+        },
+        {
+          "name": "attempted_operation",
+          "type": "string",
+          "required": true,
+          "description": "Blocked operation such as direct_stock_patch."
+        },
+        {
+          "name": "rejection_reason",
+          "type": "string",
+          "required": true,
+          "description": "Reason code such as stock_mutation_requires_order."
+        }
+      ],
+      "allowlist": [
+        "asset_id",
+        "asset_category",
+        "office",
+        "attempted_operation",
+        "rejection_reason"
+      ]
+    },
+    {
+      "event_type": "assignment_form_abandoned",
+      "description": "Assignment flow started but no AssignmentOrder was completed before inactivity or exit.",
+      "hypothesis": "Abandoned assignment flows indicate friction before order submission.",
+      "business_decision": "Decide whether the outbound workflow needs simpler defaults, validation guidance, or session handling changes.",
+      "delivery_mode": "batch",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use UUIDs only. No raw form snapshots.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "asset_id",
+          "type": "integer",
+          "required": false,
+          "description": "Selected Asset id if one had been chosen."
+        },
+        {
+          "name": "asset_category",
+          "type": "string",
+          "required": false,
+          "description": "Canonical Asset category."
+        },
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value."
+        },
+        {
+          "name": "elapsed_seconds",
+          "type": "integer",
+          "required": true,
+          "description": "Time spent in the flow before abandonment."
+        },
+        {
+          "name": "last_step",
+          "type": "string",
+          "required": true,
+          "description": "Last meaningful step reached, such as asset_selected or submit_attempted."
+        }
+      ],
+      "allowlist": [
+        "asset_id",
+        "asset_category",
+        "office",
+        "elapsed_seconds",
+        "last_step"
+      ]
+    },
+    {
+      "event_type": "asset_list_viewed",
+      "description": "Operator opened the Asset list view.",
+      "hypothesis": "The Asset list is the main operational entry point and should be segmented by office.",
+      "business_decision": "Decide how operators enter inventory workflows and whether office-specific workflows dominate.",
+      "delivery_mode": "batch",
+      "contains_sensitive_data": false,
+      "pii_strategy": "No PII beyond envelope userId.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "office",
+          "type": "string",
+          "required": false,
+          "description": "Office filter value at first view if one is applied."
+        },
+        {
+          "name": "result_count",
+          "type": "integer",
+          "required": false,
+          "description": "Number of Assets visible to the operator."
+        },
+        {
+          "name": "view_source",
+          "type": "string",
+          "required": true,
+          "description": "Entry source such as nav_menu or redirect_after_login."
+        }
+      ],
+      "allowlist": [
+        "office",
+        "result_count",
+        "view_source"
+      ]
+    }
+  ]
+}
