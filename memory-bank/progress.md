@@ -129,6 +129,13 @@
    - Service layer at `uis/backoffice/services/inventory.ts`; mapper tests at `tests/inventory-mappers.test.ts`
    - Eval traceability at `docs/eval-traceability-inventory.md`; plan archived at `memory-bank/past-implementations/inventory-orm-implementation-plan.md`
    - Inventory milestone contexts archived to `memory-bank/reference/` (`backend-inventory-management-CONTEXT.md`, `inventory-management-workspace-context.md`, `inventory-management-evals.md`)
+41. Implemented Docker platform containerization:
+   - Root `docker-compose.yml` with `ui` and `backend` services on `nexova_network`
+   - `uis/Dockerfile`, `uis/start.sh`, `uis/.dockerignore` — dual Next.js dev servers (3000/3001)
+   - `services/Dockerfile`, `services/.dockerignore` — FastAPI with Uvicorn `--reload`
+   - Root `.env.example` for compose secrets; bind mounts + named volumes for hot reload
+   - Env-driven `CORS_ORIGINS` in `services/api/app/main.py` for backoffice port 3001
+   - Eval traceability at `docs/eval-traceability-docker.md`; plan archived at `memory-bank/past-implementations/docker-platform-implementation-plan.md`
 
 ## Next Steps
 

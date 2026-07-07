@@ -12,7 +12,7 @@ export async function getSuppliers(
   filters: SupplierFilters = {},
 ): Promise<Supplier[]> {
   const query = buildSupplierQuery(filters);
-  const path = query ? `/api/suppliers?${query}` : "/api/suppliers";
+  const path = query ? `/api/suppliers/?${query}` : "/api/suppliers/";
   return suppliersApiRequest<Supplier[]>(path);
 }
 
@@ -23,7 +23,7 @@ export async function getSupplierById(id: string): Promise<Supplier> {
 export async function createSupplier(
   input: SupplierCreateInput,
 ): Promise<Supplier> {
-  return suppliersApiRequest<Supplier>("/api/suppliers", {
+  return suppliersApiRequest<Supplier>("/api/suppliers/", {
     method: "POST",
     body: JSON.stringify(input),
   });

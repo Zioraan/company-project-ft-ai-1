@@ -19,7 +19,7 @@ export function useSuppliers(
     SuppliersApiError
   >(["suppliers", filters], () => getSuppliers(filters), {
     fallbackData: options?.initialData,
-    revalidateOnMount: options?.initialData ? false : undefined,
+    revalidateOnMount: !options?.initialData,
   });
 
   const refetch = useCallback(async () => {

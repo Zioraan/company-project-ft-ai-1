@@ -7,6 +7,8 @@ Living map of the monorepo layout. Update when directories or major modules are 
 | Path | Purpose |
 |------|---------|
 | `AGENTS.md` | Global coding-agent governance contract |
+| `.env.example` | Docker Compose env template (copy to `.env` at root) |
+| `docker-compose.yml` | UI + backend dev stack with bind mounts |
 | `memory-bank/` | Active project context, progress, and reference archives |
 | `project-structure.md` | This file — repository layout index |
 | `.agents/` | Scoped coding rules and skills |
@@ -25,6 +27,8 @@ Living map of the monorepo layout. Update when directories or major modules are 
 | `services/contracts/` | Shared TypeScript request/response contracts (records, notes) |
 | `services/domain/` | Business-oriented TypeScript service façades |
 | `services/api/` | FastAPI platform API (Python) |
+| `services/Dockerfile` | Backend image (build context `/services`, app in `api/`) |
+| `services/.dockerignore` | Backend Docker build exclusions |
 
 ### `services/api/` (platform API)
 
@@ -82,6 +86,9 @@ services/api/
 |------|---------|
 | `uis/website/` | Public marketing and signup surface |
 | `uis/backoffice/` | Internal ops UI (candidates, incidents, suppliers, inventory) |
+| `uis/Dockerfile` | UI image (dual Next.js dev servers) |
+| `uis/start.sh` | Starts website `:3000` and backoffice `:3001` |
+| `uis/.dockerignore` | UI Docker build exclusions |
 
 Backoffice calls the platform API via `lib/platform-api-client.ts` (Bearer token + 401 handling). Supplier, incident, and inventory modules wrap this client. The external tracker API uses `lib/api-client.ts` without platform JWT.
 
@@ -116,6 +123,7 @@ Key modules: `lib/auth-token.ts`, `services/auth.ts`, `components/auth/*`
 | `docs/eval-traceability-suppliers.md` | Supplier milestone evidence |
 | `docs/eval-traceability-incidents.md` | Incident milestone evidence |
 | `docs/eval-traceability-inventory.md` | Inventory ORM + Supabase milestone evidence |
+| `docs/eval-traceability-docker.md` | Docker platform containerization evidence |
 | `memory-bank/progress.md` | Delivery status and completed milestones |
 | `memory-bank/techContext.md` | Stack, constraints, and architecture patterns |
 
