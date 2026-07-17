@@ -2,7 +2,9 @@ import { inventoryApiRequest } from "@/lib/inventory-api-client";
 import type {
   Asset,
   AssetCreateInput,
+  AssetEntry,
   AssetEntryCreateInput,
+  AssetExit,
   AssetExitCreateInput,
   OrderHistoryItem,
 } from "@/types/inventory";
@@ -24,8 +26,8 @@ export async function createAsset(input: AssetCreateInput): Promise<Asset> {
 
 export async function createAssetEntry(
   input: AssetEntryCreateInput,
-): Promise<unknown> {
-  return inventoryApiRequest("/inventory/orders/inbound", {
+): Promise<AssetEntry> {
+  return inventoryApiRequest<AssetEntry>("/inventory/orders/inbound", {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -33,8 +35,8 @@ export async function createAssetEntry(
 
 export async function createAssetExit(
   input: AssetExitCreateInput,
-): Promise<unknown> {
-  return inventoryApiRequest("/inventory/orders/outbound", {
+): Promise<AssetExit> {
+  return inventoryApiRequest<AssetExit>("/inventory/orders/outbound", {
     method: "POST",
     body: JSON.stringify(input),
   });

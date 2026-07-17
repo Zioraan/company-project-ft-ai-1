@@ -3,13 +3,14 @@ import { SupplierDirectoryClient } from "@/components/suppliers/SupplierDirector
 import { getSuppliers } from "@/services/suppliers";
 
 export default async function SuppliersPage() {
-  let initialData;
-  let initialError: string | undefined;
+  let initialData: Awaited<ReturnType<typeof getSuppliers>> | undefined;
 
+  // JWT lives in browser localStorage, so SSR prefetch usually fails auth.
+  // Leave initialData unset and let the client hook load with the session token.
   try {
     initialData = await getSuppliers();
   } catch {
-    initialError = "Unable to load suppliers. Please try again.";
+    initialData = undefined;
   }
 
   return (
@@ -22,10 +23,7 @@ export default async function SuppliersPage() {
         </section>
       }
     >
-      <SupplierDirectoryClient
-        initialData={initialData}
-        initialError={initialError}
-      />
+      <SupplierDirectoryClient initialData={initialData} />
     </Suspense>
   );
 }

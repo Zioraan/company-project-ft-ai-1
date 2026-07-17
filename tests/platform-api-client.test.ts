@@ -11,6 +11,7 @@ import {
 describe("platform-api-client", () => {
   beforeEach(() => {
     const store = new Map<string, string>();
+    const sessionStore = new Map<string, string>();
     vi.stubGlobal("window", {
       localStorage: {
         getItem: (key: string) => store.get(key) ?? null,
@@ -24,6 +25,26 @@ describe("platform-api-client", () => {
           store.clear();
         },
       },
+      sessionStorage: {
+        getItem: (key: string) => sessionStore.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          sessionStore.set(key, value);
+        },
+        removeItem: (key: string) => {
+          sessionStore.delete(key);
+        },
+        clear: () => {
+          sessionStore.clear();
+        },
+      },
+    });
+    vi.stubGlobal("document", {
+      visibilityState: "visible",
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    vi.stubGlobal("crypto", {
+      randomUUID: () => "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     });
     vi.stubGlobal("fetch", vi.fn());
   });

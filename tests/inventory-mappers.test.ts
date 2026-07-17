@@ -10,8 +10,9 @@ import {
 
 describe("inventory mappers", () => {
   it("maps category values to display labels", () => {
-    expect(mapCategoryLabel("hardware")).toBe("Hardware");
-    expect(mapCategoryLabel("office_supplies")).toBe("Office Supplies");
+    expect(mapCategoryLabel("training_kit")).toBe("Training kit");
+    expect(mapCategoryLabel("certification")).toBe("Certification");
+    expect(mapCategoryLabel("onboarding_equipment")).toBe("Onboarding equipment");
   });
 
   it("maps order and exit type labels", () => {

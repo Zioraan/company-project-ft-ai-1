@@ -1,5 +1,6 @@
 {
   "schemaVersion": "1.0.0",
+  "description": "Canonical machine-readable telemetry contract for Nexova material inventory. Business-metric events feed the Weekly Office & Programme Performance Report. Support events are operational only and are not weekly-report KPI inputs. See memory-bank/documentation/telemetry-CONTEXT.md and memory-bank/documentation/data-pipeline-CONTEXT.md.",
   "eventEnvelope": {
     "required": [
       "eventId",
@@ -47,239 +48,284 @@
       }
     }
   },
-  "events": [
+  "supersededEvents": [
     {
-      "event_type": "assignment_flow_started",
-      "description": "Authenticated operator opened the outbound assignment flow for an Asset.",
-      "hypothesis": "Assignment lead time starts before the AssignmentOrder is submitted, and friction may occur before API submission.",
-      "business_decision": "Decide whether outbound workflow UX or training is delaying onboarding asset delivery.",
-      "delivery_mode": "batch",
-      "contains_sensitive_data": true,
-      "pii_strategy": "Use UUIDs only for created_by and assigned_to_candidate when present; do not capture names or emails.",
-      "audit_requirement": "standard",
-      "properties": [
-        {
-          "name": "asset_id",
-          "type": "integer",
-          "required": false,
-          "description": "Selected Asset id if known when the flow starts."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": false,
-          "description": "Canonical Asset category."
-        },
-        {
-          "name": "office",
-          "type": "string",
-          "required": true,
-          "description": "Canonical office value: valencia or miami."
-        },
-        {
-          "name": "flow_origin",
-          "type": "string",
-          "required": true,
-          "description": "Where the operator entered the flow from, such as asset_list or order_history."
-        }
-      ],
-      "allowlist": [
-        "asset_id",
-        "asset_category",
-        "office",
-        "flow_origin"
-      ]
-    },
-    {
-      "event_type": "assignment_order_failed",
-      "description": "AssignmentOrder creation failed because validation or stock rules blocked completion.",
-      "hypothesis": "Failed AssignmentOrders reveal whether onboarding delays are caused by insufficient stock or invalid inputs.",
-      "business_decision": "Decide whether to change stock policy, operator training, or form validation UX.",
-      "delivery_mode": "stream",
-      "contains_sensitive_data": true,
-      "pii_strategy": "Use UUIDs only; record normalized failure_reason codes rather than raw input or exception bodies.",
-      "audit_requirement": "standard",
-      "properties": [
-        {
-          "name": "asset_id",
-          "type": "integer",
-          "required": false,
-          "description": "Target Asset id if available."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": false,
-          "description": "Canonical Asset category."
-        },
-        {
-          "name": "office",
-          "type": "string",
-          "required": true,
-          "description": "Canonical office value."
-        },
-        {
-          "name": "quantity",
-          "type": "integer",
-          "required": false,
-          "description": "Requested assignment quantity."
-        },
-        {
-          "name": "failure_reason",
-          "type": "string",
-          "required": true,
-          "description": "Normalized reason code such as insufficient_stock or missing_assigned_to."
-        },
-        {
-          "name": "assigned_to",
-          "type": "string",
-          "required": false,
-          "description": "Opaque employee UUID when the assignment target was supplied."
-        }
-      ],
-      "allowlist": [
-        "asset_id",
-        "asset_category",
-        "office",
-        "quantity",
-        "failure_reason",
-        "assigned_to"
-      ]
+      "event_type": "procurement_order_created",
+      "replaced_by": "inbound_order_created",
+      "description": "HISTORICAL / SUPERSEDED — not used for Weekly Office & Programme Performance Report. Replaced by inbound_order_created; inbound events must include unit_cost (and may include total_cost)."
     },
     {
       "event_type": "assignment_order_created",
-      "description": "AssignmentOrder was successfully created and stock was reduced through the supported workflow.",
-      "hypothesis": "Successful AssignmentOrders complete the lead-time measurement for onboarding asset delivery.",
-      "business_decision": "Decide which offices and asset categories need process changes to reduce assignment lead time.",
+      "replaced_by": "outbound_order_created",
+      "description": "HISTORICAL / SUPERSEDED — not used for Weekly Office & Programme Performance Report. Replaced by outbound_order_created for Kits Delivered."
+    },
+    {
+      "event_type": "procurement_order_failed",
+      "replaced_by": null,
+      "description": "HISTORICAL / SUPERSEDED — not used for Weekly Office & Programme Performance Report. Former procurement failure signal; not a weekly KPI input."
+    },
+    {
+      "event_type": "assignment_order_failed",
+      "replaced_by": null,
+      "description": "HISTORICAL / SUPERSEDED — not used for Weekly Office & Programme Performance Report. Former assignment failure signal; not a weekly KPI input."
+    },
+    {
+      "event_type": "assignment_flow_started",
+      "replaced_by": null,
+      "description": "HISTORICAL / SUPERSEDED — not used for Weekly Office & Programme Performance Report. Former assignment lead-time start signal."
+    },
+    {
+      "event_type": "assignment_form_abandoned",
+      "replaced_by": null,
+      "description": "HISTORICAL / SUPERSEDED — not used for Weekly Office & Programme Performance Report. Former assignment UX friction signal."
+    }
+  ],
+  "events": [
+    {
+      "event_type": "inbound_order_created",
+      "role": "business_metric",
+      "description": "Mandatory business-metric event. A new batch of training or onboarding material arrived from a supplier (InboundOrder created). Feeds Material Cost per Office/Programme for the Weekly Office & Programme Performance Report.",
+      "hypothesis": "We need to know how much material is being produced or purchased, for which programme, and at what cost.",
+      "business_decision": "Plan material production based on expected enrolment demand (Elena) and track L&D investment by office and programme (Laura).",
+      "feeds_kpi": "Material Cost per Office/Programme",
       "delivery_mode": "stream",
       "contains_sensitive_data": true,
-      "pii_strategy": "Use UUIDs only for assigned_to and created_by. No names or emails.",
-      "audit_requirement": "durable_for_software_licence",
+      "pii_strategy": "Use opaque operator UUIDs only in envelope. Never put candidate, client, consultant, or agent names in properties.",
+      "audit_requirement": "standard",
       "properties": [
-        {
-          "name": "assignment_order_id",
-          "type": "integer",
-          "required": true,
-          "description": "Created AssignmentOrder identifier."
-        },
-        {
-          "name": "asset_id",
-          "type": "integer",
-          "required": true,
-          "description": "Assigned Asset identifier."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": true,
-          "description": "Canonical Asset category."
-        },
         {
           "name": "office",
           "type": "string",
           "required": true,
-          "description": "Canonical office value."
+          "description": "Canonical office value: valencia | miami."
+        },
+        {
+          "name": "product_id",
+          "type": "string",
+          "required": true,
+          "description": "Stable product / material identifier."
+        },
+        {
+          "name": "product_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical product category enum: training_kit | certification | onboarding_equipment."
+        },
+        {
+          "name": "programme_id",
+          "type": "string",
+          "required": true,
+          "description": "Training or certification programme identifier (e.g. b2b-sales)."
         },
         {
           "name": "quantity",
           "type": "integer",
           "required": true,
-          "description": "Assigned quantity."
+          "description": "Inbound quantity received."
         },
         {
-          "name": "assigned_to",
+          "name": "currency",
           "type": "string",
           "required": true,
-          "description": "Opaque employee UUID."
+          "description": "Office local currency: EUR | USD. Do not convert at telemetry layer."
+        },
+        {
+          "name": "unit_cost",
+          "type": "number",
+          "required": true,
+          "description": "Unit cost of the material in the office local currency. Required for Material Cost aggregation."
+        },
+        {
+          "name": "total_cost",
+          "type": "number",
+          "required": false,
+          "description": "Optional total cost (typically unit_cost * quantity) in the office local currency."
+        },
+        {
+          "name": "inbound_order_id",
+          "type": "string",
+          "required": false,
+          "description": "Created InboundOrder identifier when available."
+        },
+        {
+          "name": "supplier",
+          "type": "string",
+          "required": false,
+          "description": "Supplier or vendor name only; no contact PII."
         },
         {
           "name": "created_by",
           "type": "string",
-          "required": true,
-          "description": "Opaque operator UUID."
-        },
-        {
-          "name": "lead_time_seconds",
-          "type": "integer",
           "required": false,
-          "description": "Elapsed time from assignment_flow_started to order creation when correlation exists."
-        },
-        {
-          "name": "audit_required",
-          "type": "boolean",
-          "required": true,
-          "description": "True for software_licence assignments requiring a durable audit trail."
+          "description": "Opaque operator UUID."
         }
       ],
       "allowlist": [
-        "assignment_order_id",
-        "asset_id",
-        "asset_category",
         "office",
+        "product_id",
+        "product_category",
+        "programme_id",
         "quantity",
-        "assigned_to",
-        "created_by",
-        "lead_time_seconds",
-        "audit_required"
+        "currency",
+        "unit_cost",
+        "total_cost",
+        "inbound_order_id",
+        "supplier",
+        "created_by"
+      ]
+    },
+    {
+      "event_type": "outbound_order_created",
+      "role": "business_metric",
+      "description": "Mandatory business-metric event. A kit or certificate was delivered to a client, candidate, consultant, or agent (OutboundOrder created). Feeds Kits Delivered for the Weekly Office & Programme Performance Report.",
+      "hypothesis": "We need to know which programmes consume the most material, and at what rate.",
+      "business_decision": "Anticipate restocking needs before a large enrolment wave (Elena) and measure adoption by office and programme (Laura).",
+      "feeds_kpi": "Kits Delivered",
+      "delivery_mode": "stream",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Never include recipient names. Use programme_id and product identifiers only; operator UUID in envelope or created_by.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value: valencia | miami."
+        },
+        {
+          "name": "product_id",
+          "type": "string",
+          "required": true,
+          "description": "Stable product / material identifier."
+        },
+        {
+          "name": "product_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical product category enum: training_kit | certification | onboarding_equipment."
+        },
+        {
+          "name": "programme_id",
+          "type": "string",
+          "required": true,
+          "description": "Training or certification programme identifier."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": true,
+          "description": "Delivered quantity."
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "description": "Office local currency: EUR | USD. Present for dimensional consistency across material events."
+        },
+        {
+          "name": "outbound_order_id",
+          "type": "string",
+          "required": false,
+          "description": "Created OutboundOrder identifier when available."
+        },
+        {
+          "name": "created_by",
+          "type": "string",
+          "required": false,
+          "description": "Opaque operator UUID."
+        }
+      ],
+      "allowlist": [
+        "office",
+        "product_id",
+        "product_category",
+        "programme_id",
+        "quantity",
+        "currency",
+        "outbound_order_id",
+        "created_by"
       ]
     },
     {
       "event_type": "stock_threshold_triggered",
-      "description": "Asset stock reached or fell below its minimum threshold after a successful AssignmentOrder.",
-      "hypothesis": "Threshold breaches are an early warning before zero-stock events and should drive procurement action.",
-      "business_decision": "Decide whether procurement cadence or reorder points must change for a specific office or category.",
+      "role": "business_metric",
+      "description": "Mandatory business-metric event. Stock of a material item fell below the configured minimum after a stock-changing operation. Feeds Shortage Frequency for the Weekly Office & Programme Performance Report.",
+      "hypothesis": "We need to know how often a programme runs out of available material.",
+      "business_decision": "Adjust the minimum threshold or speed up reprinting/reproduction of that material (Elena).",
+      "feeds_kpi": "Shortage Frequency",
       "delivery_mode": "stream",
       "contains_sensitive_data": false,
       "pii_strategy": "No direct PII.",
       "audit_requirement": "standard",
       "properties": [
         {
-          "name": "asset_id",
-          "type": "integer",
-          "required": true,
-          "description": "Asset identifier."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": true,
-          "description": "Canonical Asset category."
-        },
-        {
           "name": "office",
           "type": "string",
           "required": true,
-          "description": "Canonical office value."
+          "description": "Canonical office value: valencia | miami."
+        },
+        {
+          "name": "product_id",
+          "type": "string",
+          "required": true,
+          "description": "Product identifier whose stock crossed the threshold."
+        },
+        {
+          "name": "product_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical product category enum: training_kit | certification | onboarding_equipment."
+        },
+        {
+          "name": "programme_id",
+          "type": "string",
+          "required": true,
+          "description": "Programme identifier for the material."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": true,
+          "description": "Current stock quantity after the triggering operation (or remaining quantity at breach)."
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "description": "Office local currency: EUR | USD. Present for dimensional consistency."
         },
         {
           "name": "current_stock",
           "type": "integer",
-          "required": true,
-          "description": "Available stock after the stock-changing operation."
+          "required": false,
+          "description": "Available stock after the stock-changing operation (alias of quantity when both are used)."
         },
         {
           "name": "min_stock_threshold",
           "type": "integer",
-          "required": true,
-          "description": "Configured minimum threshold for the Asset."
+          "required": false,
+          "description": "Configured minimum / reorder threshold for the product."
         },
         {
           "name": "trigger_source_event",
           "type": "string",
-          "required": true,
-          "description": "Source event that caused the threshold breach, usually assignment_order_created."
+          "required": false,
+          "description": "Source event that caused the threshold breach, usually outbound_order_created."
         },
         {
           "name": "trigger_source_order_id",
-          "type": "integer",
-          "required": true,
+          "type": "string",
+          "required": false,
           "description": "Identifier of the order that caused the threshold breach."
         }
       ],
       "allowlist": [
-        "asset_id",
-        "asset_category",
         "office",
+        "product_id",
+        "product_category",
+        "programme_id",
+        "quantity",
+        "currency",
         "current_stock",
         "min_stock_threshold",
         "trigger_source_event",
@@ -287,151 +333,52 @@
       ]
     },
     {
-      "event_type": "procurement_order_failed",
-      "description": "ProcurementOrder creation failed because validation or service rules blocked it.",
-      "hypothesis": "Failed ProcurementOrders reveal why replenishment work is delayed before stock is restored.",
-      "business_decision": "Decide whether procurement friction is caused by data quality, vendor setup, or operator workflow.",
-      "delivery_mode": "stream",
-      "contains_sensitive_data": true,
-      "pii_strategy": "Use created_by UUID only. Do not include vendor contacts or raw request payloads.",
-      "audit_requirement": "standard",
-      "properties": [
-        {
-          "name": "asset_id",
-          "type": "integer",
-          "required": false,
-          "description": "Target Asset id if known."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": false,
-          "description": "Canonical Asset category."
-        },
-        {
-          "name": "office",
-          "type": "string",
-          "required": true,
-          "description": "Canonical office value."
-        },
-        {
-          "name": "quantity",
-          "type": "integer",
-          "required": false,
-          "description": "Requested procurement quantity."
-        },
-        {
-          "name": "vendor",
-          "type": "string",
-          "required": false,
-          "description": "Vendor name only when explicitly accepted by the event allowlist."
-        },
-        {
-          "name": "failure_reason",
-          "type": "string",
-          "required": true,
-          "description": "Normalized reason code such as invalid_quantity or unknown_vendor."
-        }
-      ],
-      "allowlist": [
-        "asset_id",
-        "asset_category",
-        "office",
-        "quantity",
-        "vendor",
-        "failure_reason"
-      ]
-    },
-    {
-      "event_type": "procurement_order_created",
-      "description": "ProcurementOrder was successfully created for an Asset.",
-      "hypothesis": "Consecutive ProcurementOrder events for the same Asset reveal whether procurement is reactive or proactive.",
-      "business_decision": "Decide whether reorder points and procurement cadence should be adjusted by office and category.",
-      "delivery_mode": "batch",
-      "contains_sensitive_data": true,
-      "pii_strategy": "Use created_by UUID only. Capture vendor name only, not contact details or free-form notes.",
-      "audit_requirement": "standard",
-      "properties": [
-        {
-          "name": "procurement_order_id",
-          "type": "integer",
-          "required": true,
-          "description": "Created ProcurementOrder identifier."
-        },
-        {
-          "name": "asset_id",
-          "type": "integer",
-          "required": true,
-          "description": "Asset identifier."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": true,
-          "description": "Canonical Asset category."
-        },
-        {
-          "name": "office",
-          "type": "string",
-          "required": true,
-          "description": "Canonical office value."
-        },
-        {
-          "name": "quantity",
-          "type": "integer",
-          "required": true,
-          "description": "Procured quantity."
-        },
-        {
-          "name": "vendor",
-          "type": "string",
-          "required": true,
-          "description": "Vendor name."
-        },
-        {
-          "name": "created_by",
-          "type": "string",
-          "required": true,
-          "description": "Opaque operator UUID."
-        }
-      ],
-      "allowlist": [
-        "procurement_order_id",
-        "asset_id",
-        "asset_category",
-        "office",
-        "quantity",
-        "vendor",
-        "created_by"
-      ]
-    },
-    {
       "event_type": "direct_stock_edit_rejected",
-      "description": "A direct request to edit Asset stock outside ProcurementOrder or AssignmentOrder was blocked.",
-      "hypothesis": "Rejected direct stock edits show where operators try to bypass the inventory integrity model.",
-      "business_decision": "Decide whether to improve permissions, training, or stock-management UX.",
+      "role": "business_metric",
+      "description": "Mandatory business-metric event. A user attempted to modify stock directly (outside an InboundOrder or OutboundOrder) and the system rejected it. Required for material traceability integrity monitoring; not one of the four v1 weekly KPI aggregation columns.",
+      "hypothesis": "We need to know if staff are attempting to bypass material traceability controls.",
+      "business_decision": "Reinforce training or permissions at the office where this happens most (Patricia).",
+      "feeds_kpi": null,
       "delivery_mode": "stream",
       "contains_sensitive_data": true,
-      "pii_strategy": "Use operator UUID only. Do not capture raw request payloads.",
+      "pii_strategy": "Use operator UUID only. Do not capture raw request payloads or person names.",
       "audit_requirement": "standard",
       "properties": [
         {
-          "name": "asset_id",
-          "type": "integer",
-          "required": false,
-          "description": "Asset identifier when known."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": false,
-          "description": "Canonical Asset category."
-        },
-        {
           "name": "office",
           "type": "string",
+          "required": true,
+          "description": "Canonical office value: valencia | miami."
+        },
+        {
+          "name": "product_id",
+          "type": "string",
+          "required": true,
+          "description": "Product identifier when known."
+        },
+        {
+          "name": "product_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical product category enum: training_kit | certification | onboarding_equipment."
+        },
+        {
+          "name": "programme_id",
+          "type": "string",
+          "required": true,
+          "description": "Programme identifier for the material when known."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
           "required": false,
-          "description": "Canonical office value when known."
+          "description": "Attempted stock quantity when supplied."
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": false,
+          "description": "Office local currency: EUR | USD when known."
         },
         {
           "name": "attempted_operation",
@@ -447,67 +394,123 @@
         }
       ],
       "allowlist": [
-        "asset_id",
-        "asset_category",
         "office",
+        "product_id",
+        "product_category",
+        "programme_id",
+        "quantity",
+        "currency",
         "attempted_operation",
         "rejection_reason"
       ]
     },
     {
-      "event_type": "assignment_form_abandoned",
-      "description": "Assignment flow started but no AssignmentOrder was completed before inactivity or exit.",
-      "hypothesis": "Abandoned assignment flows indicate friction before order submission.",
-      "business_decision": "Decide whether the outbound workflow needs simpler defaults, validation guidance, or session handling changes.",
-      "delivery_mode": "batch",
-      "contains_sensitive_data": true,
-      "pii_strategy": "Use UUIDs only. No raw form snapshots.",
+      "event_type": "kit_cost_variance_detected",
+      "role": "business_metric",
+      "description": "Mandatory business-metric event. The unit cost of an inbound order varies more than a configured threshold (e.g. 10%) from the historical value for that material/supplier. Feeds Cost Variance Frequency for the Weekly Office & Programme Performance Report.",
+      "hypothesis": "We need to know when a material supplier raises prices abnormally.",
+      "business_decision": "Alert Elena and Laura to renegotiate or find an alternate supplier.",
+      "feeds_kpi": "Cost Variance Frequency",
+      "delivery_mode": "stream",
+      "contains_sensitive_data": false,
+      "pii_strategy": "No direct PII. Cost figures only; no personal names.",
       "audit_requirement": "standard",
       "properties": [
-        {
-          "name": "asset_id",
-          "type": "integer",
-          "required": false,
-          "description": "Selected Asset id if one had been chosen."
-        },
-        {
-          "name": "asset_category",
-          "type": "string",
-          "required": false,
-          "description": "Canonical Asset category."
-        },
         {
           "name": "office",
           "type": "string",
           "required": true,
-          "description": "Canonical office value."
+          "description": "Canonical office value: valencia | miami."
         },
         {
-          "name": "elapsed_seconds",
-          "type": "integer",
-          "required": true,
-          "description": "Time spent in the flow before abandonment."
-        },
-        {
-          "name": "last_step",
+          "name": "product_id",
           "type": "string",
           "required": true,
-          "description": "Last meaningful step reached, such as asset_selected or submit_attempted."
+          "description": "Product identifier with the cost variance."
+        },
+        {
+          "name": "product_category",
+          "type": "string",
+          "required": true,
+          "description": "Canonical product category enum: training_kit | certification | onboarding_equipment."
+        },
+        {
+          "name": "programme_id",
+          "type": "string",
+          "required": true,
+          "description": "Programme identifier for the material."
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "required": true,
+          "description": "Inbound quantity associated with the cost observation."
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": true,
+          "description": "Office local currency: EUR | USD. Do not convert at telemetry layer."
+        },
+        {
+          "name": "unit_cost",
+          "type": "number",
+          "required": true,
+          "description": "New inbound unit cost that triggered the variance."
+        },
+        {
+          "name": "previous_unit_cost",
+          "type": "number",
+          "required": false,
+          "description": "Historical unit cost used as the baseline comparison."
+        },
+        {
+          "name": "variance_ratio",
+          "type": "number",
+          "required": false,
+          "description": "Relative change versus historical unit cost (e.g. 0.12 for +12%)."
+        },
+        {
+          "name": "variance_threshold",
+          "type": "number",
+          "required": false,
+          "description": "Configured threshold that was exceeded (e.g. 0.10 for 10%)."
+        },
+        {
+          "name": "supplier",
+          "type": "string",
+          "required": false,
+          "description": "Supplier name only when available; no contact PII."
+        },
+        {
+          "name": "inbound_order_id",
+          "type": "string",
+          "required": false,
+          "description": "InboundOrder identifier associated with the variance when available."
         }
       ],
       "allowlist": [
-        "asset_id",
-        "asset_category",
         "office",
-        "elapsed_seconds",
-        "last_step"
+        "product_id",
+        "product_category",
+        "programme_id",
+        "quantity",
+        "currency",
+        "unit_cost",
+        "previous_unit_cost",
+        "variance_ratio",
+        "variance_threshold",
+        "supplier",
+        "inbound_order_id"
       ]
     },
     {
       "event_type": "asset_list_viewed",
-      "description": "Operator opened the Asset list view.",
-      "hypothesis": "The Asset list is the main operational entry point and should be segmented by office.",
+      "role": "support",
+      "description": "SUPPORT TELEMETRY — not an input to the Weekly Office & Programme Performance Report. Operator opened the material/asset list view.",
+      "hypothesis": "The material list is the main operational entry point and should be segmented by office.",
       "business_decision": "Decide how operators enter inventory workflows and whether office-specific workflows dominate.",
+      "feeds_kpi": null,
       "delivery_mode": "batch",
       "contains_sensitive_data": false,
       "pii_strategy": "No PII beyond envelope userId.",
@@ -517,13 +520,13 @@
           "name": "office",
           "type": "string",
           "required": false,
-          "description": "Office filter value at first view if one is applied."
+          "description": "Office filter value at first view if one is applied: valencia | miami."
         },
         {
           "name": "result_count",
           "type": "integer",
           "required": false,
-          "description": "Number of Assets visible to the operator."
+          "description": "Number of products/assets visible to the operator."
         },
         {
           "name": "view_source",
@@ -537,6 +540,103 @@
         "result_count",
         "view_source"
       ]
+    },
+    {
+      "event_type": "office_filter_applied",
+      "role": "support",
+      "description": "SUPPORT TELEMETRY — not an input to the Weekly Office & Programme Performance Report. Operator changed the office filter on the material/asset list.",
+      "hypothesis": "Frequent office switching indicates centralized vs office-specific inventory oversight.",
+      "business_decision": "Decide whether inventory UX should default to a single office or support multi-office operators.",
+      "feeds_kpi": null,
+      "delivery_mode": "batch",
+      "contains_sensitive_data": false,
+      "pii_strategy": "No direct PII.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "office",
+          "type": "string",
+          "required": true,
+          "description": "Canonical office value selected by the filter (valencia | miami), or all when cleared."
+        },
+        {
+          "name": "previous_office",
+          "type": "string",
+          "required": false,
+          "description": "Previous canonical office filter value when known."
+        },
+        {
+          "name": "result_count",
+          "type": "integer",
+          "required": false,
+          "description": "Number of products/assets visible after the filter is applied."
+        }
+      ],
+      "allowlist": [
+        "office",
+        "previous_office",
+        "result_count"
+      ]
+    },
+    {
+      "event_type": "user_login_succeeded",
+      "role": "support",
+      "description": "SUPPORT TELEMETRY — not an input to the Weekly Office & Programme Performance Report. Operator successfully authenticated into the backoffice.",
+      "hypothesis": "Successful logins establish whether inventory friction starts after operators can reach the product.",
+      "business_decision": "Decide whether access health is healthy enough to attribute inventory delays to workflow rather than auth.",
+      "feeds_kpi": null,
+      "delivery_mode": "batch",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use envelope userId UUID only. Do not capture email or password.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "office",
+          "type": "string",
+          "required": false,
+          "description": "Preferred office when known at login time: valencia | miami."
+        }
+      ],
+      "allowlist": [
+        "office"
+      ]
+    },
+    {
+      "event_type": "user_login_failed",
+      "role": "support",
+      "description": "SUPPORT TELEMETRY — not an input to the Weekly Office & Programme Performance Report. Operator failed to authenticate into the backoffice.",
+      "hypothesis": "Failed logins reveal whether operators are blocked before inventory work begins.",
+      "business_decision": "Decide whether credential recovery or auth UX needs improvement.",
+      "feeds_kpi": null,
+      "delivery_mode": "batch",
+      "contains_sensitive_data": true,
+      "pii_strategy": "No raw email. Normalized reason only.",
+      "audit_requirement": "standard",
+      "properties": [
+        {
+          "name": "failure_reason",
+          "type": "string",
+          "required": true,
+          "description": "Normalized reason such as invalid_credentials or network_error."
+        }
+      ],
+      "allowlist": [
+        "failure_reason"
+      ]
+    },
+    {
+      "event_type": "session_expired",
+      "role": "support",
+      "description": "SUPPORT TELEMETRY — not an input to the Weekly Office & Programme Performance Report. An authenticated session was cleared after an unauthorized API response.",
+      "hypothesis": "Mid-workflow session expiry disrupts inventory completion.",
+      "business_decision": "Decide whether token lifetime or refresh UX should change.",
+      "feeds_kpi": null,
+      "delivery_mode": "batch",
+      "contains_sensitive_data": true,
+      "pii_strategy": "Use envelope userId UUID only when still available before token clear.",
+      "audit_requirement": "standard",
+      "properties": [],
+      "allowlist": []
     }
   ]
 }

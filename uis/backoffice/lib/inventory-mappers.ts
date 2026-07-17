@@ -17,10 +17,9 @@ export const STOCK_THRESHOLDS = {
 export type StockStatus = "critical" | "low" | "ok";
 
 export const CATEGORY_LABELS: Record<AssetCategory, string> = {
-  hardware: "Hardware",
-  peripherals: "Peripherals",
-  office_supplies: "Office Supplies",
-  training_materials: "Training Materials",
+  training_kit: "Training kit",
+  certification: "Certification",
+  onboarding_equipment: "Onboarding equipment",
 };
 
 export const ORDER_TYPE_LABELS: Record<OrderType, string> = {

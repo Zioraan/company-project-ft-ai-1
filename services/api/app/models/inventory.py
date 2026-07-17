@@ -19,6 +19,8 @@ class Asset(SQLModel, table=True):
     sku: str = Field(unique=True, index=True)
     category: str
     office: str
+    programme_id: str = Field(default="unassigned", index=True)
+    reorder_threshold: int = Field(default=5, ge=0)
 
 
 class AssetEntry(SQLModel, table=True):
@@ -29,6 +31,8 @@ class AssetEntry(SQLModel, table=True):
     quantity: int = Field(gt=0)
     supplier: str
     office: str
+    currency: str = Field(default="EUR")
+    unit_cost: float = Field(default=0.0, ge=0)
     created_at: datetime = Field(default_factory=_utc_now)
     user_uuid: str
 

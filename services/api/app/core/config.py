@@ -21,6 +21,7 @@ class Settings:
     resend_api_key: str | None
     resend_from_email: str
     database_url: str
+    telemetry_endpoint: str
 
 
 def _require_database_url() -> str:
@@ -78,6 +79,10 @@ def get_settings() -> Settings:
             "onboarding@resend.dev",
         ),
         database_url=_require_database_url(),
+        telemetry_endpoint=os.environ.get(
+            "TELEMETRY_ENDPOINT",
+            "http://localhost:8000/telemetry/events",
+        ),
     )
 
 

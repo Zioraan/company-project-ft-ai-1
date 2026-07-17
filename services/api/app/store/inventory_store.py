@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlmodel import Session, select
@@ -17,7 +15,10 @@ from app.schemas.inventory import (
     AssetExitResponseSchema,
     AssetResponseSchema,
     OrderHistoryItemSchema,
+    currency_for_office,
 )
+
+COST_VARIANCE_THRESHOLD = 0.10
 
 __all__ = [
     "create_asset",
@@ -51,23 +52,43 @@ def _to_asset_response(session: Session, asset: Asset) -> AssetResponseSchema:
         sku=asset.sku,
         category=asset.category,
         office=asset.office,
+        programme_id=asset.programme_id,
+        reorder_threshold=asset.reorder_threshold,
         current_stock=_compute_stock(session, asset.id),  # type: ignore[arg-type]
     )
 
 
-def _to_entry_response(entry: AssetEntry) -> AssetEntryResponseSchema:
+def _to_entry_response(
+    entry: AssetEntry,
+    *,
+    asset: Asset,
+    cost_variance_detected: bool = False,
+    previous_unit_cost: float | None = None,
+) -> AssetEntryResponseSchema:
     return AssetEntryResponseSchema(
         id=entry.id,  # type: ignore[arg-type]
         asset_id=entry.asset_id,
         quantity=entry.quantity,
         supplier=entry.supplier,
         office=entry.office,
+        currency=entry.currency,
+        unit_cost=entry.unit_cost,
         created_at=entry.created_at,
         user_uuid=entry.user_uuid,
+        programme_id=asset.programme_id,
+        product_category=asset.category,
+        cost_variance_detected=cost_variance_detected,
+        previous_unit_cost=previous_unit_cost,
     )
 
 
-def _to_exit_response(exit_row: AssetExit) -> AssetExitResponseSchema:
+def _to_exit_response(
+    exit_row: AssetExit,
+    *,
+    asset: Asset,
+    current_stock: int,
+    stock_threshold_triggered: bool,
+) -> AssetExitResponseSchema:
     return AssetExitResponseSchema(
         id=exit_row.id,  # type: ignore[arg-type]
         asset_id=exit_row.asset_id,
@@ -77,6 +98,12 @@ def _to_exit_response(exit_row: AssetExit) -> AssetExitResponseSchema:
         office=exit_row.office,
         created_at=exit_row.created_at,
         user_uuid=exit_row.user_uuid,
+        programme_id=asset.programme_id,
+        product_category=asset.category,
+        currency=currency_for_office(exit_row.office),
+        current_stock=current_stock,
+        reorder_threshold=asset.reorder_threshold,
+        stock_threshold_triggered=stock_threshold_triggered,
     )
 
 
@@ -95,6 +122,8 @@ def create_asset(session: Session, payload: AssetCreateSchema) -> AssetResponseS
         sku=payload.sku,
         category=payload.category,
         office=payload.office,
+        programme_id=payload.programme_id,
+        reorder_threshold=payload.reorder_threshold,
     )
     session.add(asset)
     session.commit()
@@ -123,17 +152,37 @@ def create_asset_entry(
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found.")
 
+    previous = session.exec(
+        select(AssetEntry)
+        .where(AssetEntry.asset_id == payload.asset_id)
+        .order_by(AssetEntry.created_at.desc(), AssetEntry.id.desc())
+    ).first()
+
+    previous_unit_cost = previous.unit_cost if previous is not None else None
+    cost_variance_detected = False
+    if previous_unit_cost is not None and previous_unit_cost > 0:
+        relative = abs(payload.unit_cost - previous_unit_cost) / previous_unit_cost
+        cost_variance_detected = relative > COST_VARIANCE_THRESHOLD
+
+    currency = payload.currency or currency_for_office(payload.office)
     entry = AssetEntry(
         asset_id=payload.asset_id,
         quantity=payload.quantity,
         supplier=payload.supplier,
         office=payload.office,
+        currency=currency,
+        unit_cost=payload.unit_cost,
         user_uuid=user_uuid,
     )
     session.add(entry)
     session.commit()
     session.refresh(entry)
-    return _to_entry_response(entry)
+    return _to_entry_response(
+        entry,
+        asset=asset,
+        cost_variance_detected=cost_variance_detected,
+        previous_unit_cost=previous_unit_cost,
+    )
 
 
 def create_asset_exit(
@@ -167,7 +216,15 @@ def create_asset_exit(
     session.add(exit_row)
     session.commit()
     session.refresh(exit_row)
-    return _to_exit_response(exit_row)
+
+    current_stock = _compute_stock(session, payload.asset_id)
+    stock_threshold_triggered = current_stock < asset.reorder_threshold
+    return _to_exit_response(
+        exit_row,
+        asset=asset,
+        current_stock=current_stock,
+        stock_threshold_triggered=stock_threshold_triggered,
+    )
 
 
 def list_orders(session: Session) -> list[OrderHistoryItemSchema]:
@@ -255,6 +312,10 @@ def seed_inventory(session: Session, seed_data: dict) -> dict[str, int]:
                 quantity=entry_data["quantity"],
                 supplier=entry_data["supplier"],
                 office=entry_data["office"],
+                currency=entry_data.get(
+                    "currency", currency_for_office(entry_data["office"])
+                ),
+                unit_cost=float(entry_data.get("unit_cost", 0)),
                 user_uuid=entry_data["user_uuid"],
             )
             session.add(entry)

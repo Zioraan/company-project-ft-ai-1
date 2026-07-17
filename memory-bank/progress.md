@@ -136,14 +136,72 @@
    - Root `.env.example` for compose secrets; bind mounts + named volumes for hot reload
    - Env-driven `CORS_ORIGINS` in `services/api/app/main.py` for backoffice port 3001
    - Eval traceability at `docs/eval-traceability-docker.md`; plan archived at `memory-bank/past-implementations/docker-platform-implementation-plan.md`
+42. Implemented Telemetry Phase 2A Capture:
+   - Stub ingest `POST /telemetry/events` at `services/api/app/routers/telemetry.py` with `TelemetryEvent` schema
+   - Backend `TELEMETRY_ENDPOINT` setting; frontend `NEXT_PUBLIC_TELEMETRY_ENDPOINT`
+   - Backoffice `TelemetryService` with queue (10s / 20 events), retry, `sendBeacon`, auto envelope enrichment, PII key stripping
+   - Instrumentation: inventory list/filter, inbound/outbound success+failure, login success/fail, session expired
+   - Office/category normalizers; event-schemas extended for auth + office filter events
+   - Tests: `tests/test_telemetry_api.py`, `tests/telemetry.test.ts`
+   - Eval matrix: `docs/eval-traceability-telemetry.md` (E-T01–E-T12 Pass); working plan at `memory-bank/documentation/telemetry-capture-implementation-plan.md`
+43. Implemented Telemetry Phase 2B Storage:
+   - `telemetry_events` SQLModel table with `timestamp`/`event_type`/`service` indexes and Postgres GIN on `tags`
+   - `telemetry_store.bulk_insert_events` (immutable; properties → `tags`; `service=backoffice`)
+   - Ingest replaced stub: loose `{events}` parse, per-event `TelemetryEvent.model_validate`, response `{received,stored,rejected}`
+   - Table init via existing SQLModel `create_all` path in `core/database.py`
+   - Pytest mixed-batch + single bulk-flush coverage; E-T20–E-T27 Pass
+   - Plan archived: `memory-bank/past-implementations/telemetry-storage-implementation-plan.md`
+44. Implemented Telemetry Phase 2C Report:
+   - `pandas` added to `services/api/requirements.txt` (Docker image via requirements install)
+   - KPI pipeline at `services/api/domain/telemetry_analysis.py`: `assignments_per_day_by_office`, `assignment_failure_rate_per_day`, `auth_failure_rate`
+   - `GET /telemetry/report` with inclusive/exclusive UTC window (default last 7 days) and 60s in-memory cache
+   - Tests: `tests/test_telemetry_report.py`; E-T30–E-T38 Pass
+   - Plans archived under `memory-bank/past-implementations/telemetry-*-implementation-plan.md`
+
+45. Docker UI volume fix: mounted host `./services` at `/services` in the `ui` service so backoffice relative imports (`../../../services/domain/*`) resolve inside the container (was causing next.js 500s / broken backoffice on `:3001`).
+46. Drafted four separate Weekly Office & Programme Performance pipeline phase plans under `memory-bank/documentation/`:
+   - `pipeline-phase-1-implementation-plan.md` — planning brief verification/handoff
+   - `pipeline-phase-1a-implementation-plan.md` — telemetry contract + instrumentation alignment
+   - `pipeline-phase-2-implementation-plan.md` — reporting KPIs + `services/reporting/`
+   - `pipeline-phase-3-implementation-plan.md` — Prefect orchestration + run metadata
+   - Source brief: `PIPELINE_IMPLEMENTATION_BRIEF.md`; contexts: `data-pipeline-CONTEXT.md`, `telemetry-CONTEXT.md`
+47. Pipeline Phase 1 accepted: `PIPELINE_IMPLEMENTATION_BRIEF.md` verified against Phase 1 eval (phases, architecture, persistence, endpoints, idempotency, non-goals, handoff). Plan archived to `memory-bank/past-implementations/pipeline-phase-1-implementation-plan.md`.
+48. Pipeline Phase 1A complete: material telemetry contract + inventory dimensions + producers.
+   - `docs/telemetry/event-schemas.json` + `telemetry-plan.md` centered on Weekly Office & Programme Performance KPIs
+   - Inventory: `programme_id`, `reorder_threshold`, `unit_cost`, `currency`; categories `training_kit`/`certification`/`onboarding_equipment`
+   - Producers emit `inbound_order_created` / `outbound_order_created` (+ threshold, variance, direct-edit reject on PATCH stock)
+   - Tests: inventory/telemetry API + vitest normalize/mappers; E-T1A01–E-T1A08 Pass
+   - Plan archived: `memory-bank/past-implementations/pipeline-phase-1a-implementation-plan.md`
+49. Pipeline Phase 2 complete: weekly KPI reporting without touching `/telemetry/report`.
+   - Domain: `services/api/domain/weekly_office_program_performance.py`
+   - Table: `weekly_office_program_performance`; store upsert; JWT routes under `/reporting/*`
+   - Boundary package: `services/reporting/`; router wired in `main.py`
+   - Tests: `test_weekly_office_program_performance.py`, `test_reporting_api.py`
+   - Plan archived: `memory-bank/past-implementations/pipeline-phase-2-implementation-plan.md`
+50. Pipeline Phase 3 complete: Prefect operationalization for Weekly Office & Programme Performance.
+   - `data/pipelines/PIPELINE_DESIGN.md` + `data/pipelines/pipeline.py` (flow/tasks, retries, cache, `return_state=True`, CLI)
+   - `telemetry_pipeline_runs` metadata; `GET/POST /reporting/pipeline-runs*` import pipeline module
+   - Prefect added to `services/api/requirements.txt`
+   - Tests: `tests/test_pipeline.py` (CLI, trigger, latest, idempotent upsert)
+   - Plan archived: `memory-bank/past-implementations/pipeline-phase-3-implementation-plan.md`
+   - Overall pipeline phases 1 → 1A → 2 → 3 evals satisfied
+
+51. Fixed live Docker API crash on inventory schema drift (supplier directory was seeded but API failed lifespan):
+   - Supabase `asset` / `asset_entry` missing `programme_id`, `reorder_threshold`, `currency`, `unit_cost` after Phase 1A model changes (`create_all` does not ALTER)
+   - Applied migration on Company-Milestone project; added `ensure_inventory_schema()` in `services/api/app/core/database.py`
+   - Backend health restored; `GET /api/suppliers/` returns 16 seeded suppliers
+52. Fixed supplier directory UI: sticky SSR `initialError` hid a successful client refetch (JWT is localStorage-only). `SupplierDirectoryClient` now matches inventory — only surface `initialError` when the list is still empty.
+53. Live pipeline verification passed: seeded material telemetry, `POST /reporting/pipeline-runs` completed, and `GET /reporting/weekly-office-program-performance?week_start=2026-07-13` returned per-office/programme KPI rows (EUR/USD kept separate). Reporting remains API-only (no backoffice report UI in this milestone).
 
 ## Next Steps
 
-1. Complete Stage 1 website parity checks (accessibility, visual parity, optional multilingual parity).
-2. Continue Stage 3 migration for remaining service adapters and add adapter-level tests.
-3. Execute Stage 4 cutover evidence checklist and confirm no operational dependency remains on legacy `apps/*` routes.
-4. Decide whether to remediate or defer the current `npm audit` moderate vulnerabilities in `uis/backoffice` with explicit rationale.
-5. ~~Verify `scripts/analyze.py` output against `docs/incidents-nexova.csv`~~ — completed via `tests/test_nexova_golden.py` (E-I12).
+1. Optional: backoffice UI for Weekly Office & Programme Performance report (not required by phases 1–3 evals).
+2. Complete Stage 1 website parity checks (accessibility, visual parity, optional multilingual parity).
+3. Continue Stage 3 migration for remaining service adapters and add adapter-level tests.
+4. Execute Stage 4 cutover evidence checklist and confirm no operational dependency remains on legacy `apps/*` routes.
+5. Decide whether to remediate or defer the current `npm audit` moderate vulnerabilities in `uis/backoffice` with explicit rationale.
+6. Optional: mount `./data` into API Docker image/`PYTHONPATH` for in-container pipeline imports if using compose without host checkout layout.
+7. Consider enabling RLS on platform Supabase tables (currently disabled; API uses service DB URL).
 
 ## Risks
 

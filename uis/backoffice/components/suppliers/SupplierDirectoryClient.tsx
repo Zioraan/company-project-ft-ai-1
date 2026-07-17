@@ -45,7 +45,11 @@ export function SupplierDirectoryClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const listError = error ?? initialError ?? null;
+  // Prefer successful list data over stale SSR/client error flags.
+  const listError =
+    suppliers.length > 0
+      ? null
+      : (error ?? (!loading ? (initialError ?? null) : null));
 
   const handleRateUpdate = async (supplierId: string, monthlyRate: number) => {
     setActionError(null);

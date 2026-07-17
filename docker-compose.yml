@@ -15,11 +15,14 @@ services:
     environment:
       NEXT_PUBLIC_INCIDENTS_API_URL: ${NEXT_PUBLIC_INCIDENTS_API_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_TELEMETRY_ENDPOINT: ${NEXT_PUBLIC_TELEMETRY_ENDPOINT:-http://localhost:8000/telemetry/events}
     volumes:
       - ./uis/website:/app/website
       - website_node_modules:/app/website/node_modules
       - ./uis/backoffice:/app/backoffice
       - backoffice_node_modules:/app/backoffice/node_modules
+      # Match backoffice relative imports: ../../../services and ../../../src from /app/backoffice/*
+      - ./services:/services
       - ./src:/src
     networks:
       - nexova_network
@@ -42,6 +45,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
+      TELEMETRY_ENDPOINT: ${TELEMETRY_ENDPOINT:-http://localhost:8000/telemetry/events}
     volumes:
       - ./services/api:/app
       - backend_data:/app/data

@@ -1,4 +1,5 @@
 import { clearAccessToken, getAccessToken } from "@/lib/auth-token";
+import { track } from "@/services/telemetry";
 
 const PLATFORM_API_BASE_URL =
   process.env.NEXT_PUBLIC_INCIDENTS_API_URL ?? "http://localhost:8000";
@@ -122,6 +123,8 @@ function handleUnauthorized(tokenWasSent: boolean): void {
     return;
   }
 
+  // Track before clearing the token so envelope userId can still be derived.
+  track("session_expired", {});
   clearAccessToken();
   if (unauthorizedHandler) {
     unauthorizedHandler();

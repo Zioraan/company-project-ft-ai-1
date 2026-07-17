@@ -48,12 +48,14 @@
 
 Public routes:
 
-- `POST /users`, `POST /auth/login`, `POST /auth/register`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /health`
+- `POST /users`, `POST /auth/login`, `POST /auth/register`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /health`, `POST /telemetry/events`, `GET /telemetry/report`
 
 Protected routes (require valid JWT):
 
 - `GET /auth/me`, `POST /auth/change-password`, `GET/PUT/DELETE /users/*` (mutations self-only)
 - All `/api/suppliers/*` and `/api/incidents/*`
+- `/inventory/*`
+- `/reporting/*` (weekly office/programme performance + pipeline runs)
 
 Backoffice public UI routes (no `AuthGuard`):
 
@@ -67,7 +69,7 @@ Configuration (via `services/api/.env`, gitignored):
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (optional in dev; unset key logs reset URL to API console)
 - `USERS_DB_PATH`, `SUPPLIERS_DB_PATH` (optional TinyDB overrides; default under `services/api/data/`, also gitignored)
 
-Backoffice client env (`uis/backoffice/.env.local`, gitignored): `NEXT_PUBLIC_INCIDENTS_API_URL`, `NEXT_PUBLIC_APP_URL`.
+Backoffice client env (`uis/backoffice/.env.local`, gitignored): `NEXT_PUBLIC_INCIDENTS_API_URL`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_TELEMETRY_ENDPOINT`.
 
 ## Engineering Rule Anchors
 

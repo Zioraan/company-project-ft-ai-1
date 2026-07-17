@@ -2,16 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { InventoryApiError } from "@/lib/inventory-api-client";
+import { OFFICE_OPTIONS } from "@/lib/inventory-mappers";
 import {
-  OFFICE_OPTIONS,
-} from "@/lib/inventory-mappers";
+  currencyForOffice,
+  normalizeCategory,
+  normalizeOffice,
+} from "@/lib/telemetry-normalize";
+import { mapProcurementFailureReason } from "@/lib/telemetry-failure-reasons";
 import { createAssetEntry } from "@/services/inventory";
+import { track } from "@/services/telemetry";
 import type { Asset, AssetEntryCreateInput } from "@/types/inventory";
 
 const EMPTY_FORM: Omit<AssetEntryCreateInput, "asset_id"> = {
   quantity: 1,
   supplier: "",
   office: "Valencia",
+  unit_cost: 0,
 };
 
 interface AssetEntryFormProps {
@@ -47,39 +53,123 @@ export function AssetEntryForm({
     setError(null);
     setSuccess(null);
 
+    const office = normalizeOffice(form.office) ?? "valencia";
+    const productCategory = normalizeCategory(selectedAsset?.category);
+    const programmeId = selectedAsset?.programme_id ?? "unassigned";
+    const currency =
+      currencyForOffice(form.office) ?? currencyForOffice(office) ?? "EUR";
+
     if (!assetId) {
       setError("Please select an asset.");
+      track("inbound_order_failed", {
+        office,
+        product_category: productCategory,
+        programme_id: programmeId,
+        currency,
+        failure_reason: "missing_asset",
+      });
       return;
     }
 
     if (!form.supplier.trim()) {
       setError("Supplier name is required.");
+      track("inbound_order_failed", {
+        product_id: assetId,
+        product_category: productCategory,
+        programme_id: programmeId,
+        office,
+        quantity: form.quantity,
+        currency,
+        failure_reason: "missing_vendor",
+      });
       return;
     }
 
     if (!form.quantity || form.quantity <= 0) {
       setError("Quantity must be greater than zero.");
+      track("inbound_order_failed", {
+        product_id: assetId,
+        product_category: productCategory,
+        programme_id: programmeId,
+        office,
+        quantity: form.quantity,
+        currency,
+        failure_reason: "invalid_quantity",
+      });
+      return;
+    }
+
+    if (form.unit_cost < 0 || Number.isNaN(form.unit_cost)) {
+      setError("Unit cost must be zero or greater.");
+      track("inbound_order_failed", {
+        product_id: assetId,
+        product_category: productCategory,
+        programme_id: programmeId,
+        office,
+        quantity: form.quantity,
+        currency,
+        failure_reason: "invalid_unit_cost",
+      });
       return;
     }
 
     setSubmitting(true);
 
     try {
-      await createAssetEntry({
+      const created = await createAssetEntry({
         asset_id: assetId,
         quantity: form.quantity,
         supplier: form.supplier.trim(),
         office: form.office,
+        unit_cost: form.unit_cost,
+        currency: currency as AssetEntryCreateInput["currency"],
       });
+      const resolvedOffice = normalizeOffice(created.office) ?? office;
+      const resolvedCurrency = created.currency || currency;
+      const materialProps = {
+        product_id: created.asset_id,
+        product_category:
+          normalizeCategory(created.product_category) ?? productCategory,
+        programme_id: created.programme_id || programmeId,
+        office: resolvedOffice,
+        quantity: created.quantity,
+        currency: resolvedCurrency,
+      };
+      track("inbound_order_created", {
+        inbound_order_id: created.id,
+        ...materialProps,
+        unit_cost: created.unit_cost,
+        total_cost: created.unit_cost * created.quantity,
+        vendor: form.supplier.trim(),
+        created_by: created.user_uuid,
+      });
+      if (created.cost_variance_detected) {
+        track("kit_cost_variance_detected", {
+          ...materialProps,
+          unit_cost: created.unit_cost,
+          previous_unit_cost: created.previous_unit_cost ?? undefined,
+          variance_threshold: 0.1,
+        });
+      }
       setForm(EMPTY_FORM);
       setAssetId(initialAssetId ?? "");
       setSuccess("Asset entry registered successfully.");
     } catch (err) {
-      setError(
+      const message =
         err instanceof InventoryApiError
           ? err.message
-          : "Failed to register asset entry.",
-      );
+          : "Failed to register asset entry.";
+      setError(message);
+      track("inbound_order_failed", {
+        product_id: assetId,
+        product_category: productCategory,
+        programme_id: programmeId,
+        office,
+        quantity: form.quantity,
+        currency,
+        vendor: form.supplier.trim() || undefined,
+        failure_reason: mapProcurementFailureReason(message),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -117,6 +207,8 @@ export function AssetEntryForm({
           <p className="text-sm text-slate-600 dark:text-slate-300 md:col-span-2">
             Current stock for selected asset:{" "}
             <strong>{selectedAsset.current_stock}</strong>
+            {" · "}
+            Programme: <strong>{selectedAsset.programme_id}</strong>
           </p>
         ) : null}
 
@@ -130,6 +222,24 @@ export function AssetEntryForm({
               setForm((current) => ({
                 ...current,
                 quantity: Number(event.target.value),
+              }))
+            }
+            className="rounded border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            required
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+          Unit cost
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={form.unit_cost}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                unit_cost: Number(event.target.value),
               }))
             }
             className="rounded border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"

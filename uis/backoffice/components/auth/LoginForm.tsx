@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 
 import { PlatformApiError } from "@/lib/platform-api-client";
 import { login } from "@/services/auth";
+import {
+  rotateTelemetrySessionId,
+  track,
+} from "@/services/telemetry";
 
 const inputClassName =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-slate-400 focus:ring-2 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100";
@@ -24,12 +28,19 @@ export function LoginForm() {
 
     try {
       await login(email, password);
+      rotateTelemetrySessionId();
+      track("user_login_succeeded", {});
       router.replace("/");
     } catch (submitError) {
       const message =
         submitError instanceof PlatformApiError
           ? submitError.message
           : "Unable to sign in. Please try again.";
+      const failureReason =
+        submitError instanceof PlatformApiError && submitError.status === 0
+          ? "network_error"
+          : "invalid_credentials";
+      track("user_login_failed", { failure_reason: failureReason });
       setError(message);
     } finally {
       setLoading(false);

@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { InventoryApiError } from "@/lib/inventory-api-client";
 import {
   EXIT_TYPE_OPTIONS,
   OFFICE_OPTIONS,
 } from "@/lib/inventory-mappers";
+import {
+  currencyForOffice,
+  normalizeCategory,
+  normalizeOffice,
+} from "@/lib/telemetry-normalize";
+import { mapAssignmentFailureReason } from "@/lib/telemetry-failure-reasons";
 import { createAssetExit, getAssetById } from "@/services/inventory";
+import { getTelemetryUserId, track } from "@/services/telemetry";
 import type { Asset, AssetExitCreateInput } from "@/types/inventory";
 
 const EMPTY_FORM: Omit<AssetExitCreateInput, "asset_id"> = {
@@ -31,12 +38,29 @@ export function AssetExitForm({ assets, initialAssetId }: AssetExitFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const flowStartedRef = useRef(false);
 
   useEffect(() => {
     if (initialAssetId) {
       setAssetId(initialAssetId);
     }
   }, [initialAssetId]);
+
+  useEffect(() => {
+    if (flowStartedRef.current) {
+      return;
+    }
+    flowStartedRef.current = true;
+    const asset = assets.find((item) => item.id === initialAssetId);
+    track("outbound_flow_started", {
+      product_id: initialAssetId,
+      product_category: normalizeCategory(asset?.category),
+      programme_id: asset?.programme_id,
+      office: normalizeOffice(form.office) ?? "valencia",
+      currency: currencyForOffice(form.office),
+      flow_origin: initialAssetId ? "asset_list" : "order_history",
+    });
+  }, [assets, form.office, initialAssetId]);
 
   useEffect(() => {
     if (!assetId) {
@@ -82,42 +106,106 @@ export function AssetExitForm({ assets, initialAssetId }: AssetExitFormProps) {
     setError(null);
     setSuccess(null);
 
+    const office = normalizeOffice(form.office) ?? "valencia";
+    const productCategory = normalizeCategory(selectedAsset?.category);
+    const programmeId = selectedAsset?.programme_id ?? "unassigned";
+    const currency =
+      currencyForOffice(form.office) ?? currencyForOffice(office) ?? "EUR";
+
     if (!assetId) {
       setError("Please select an asset.");
+      track("outbound_order_failed", {
+        office,
+        programme_id: programmeId,
+        currency,
+        failure_reason: "missing_asset",
+      });
       return;
     }
 
     if (!form.quantity || form.quantity <= 0) {
       setError("Quantity must be greater than zero.");
+      track("outbound_order_failed", {
+        product_id: assetId,
+        product_category: productCategory,
+        programme_id: programmeId,
+        office,
+        quantity: form.quantity,
+        currency,
+        failure_reason: "invalid_quantity",
+      });
       return;
     }
 
     if (form.exit_type === "allocation" && !form.assigned_to?.trim()) {
       setError("Assigned to is required for allocation exits.");
+      track("outbound_order_failed", {
+        product_id: assetId,
+        product_category: productCategory,
+        programme_id: programmeId,
+        office,
+        quantity: form.quantity,
+        currency,
+        failure_reason: "missing_assigned_to",
+      });
       return;
     }
 
     setSubmitting(true);
 
     try {
-      await createAssetExit({
+      const assignedTo =
+        form.exit_type === "allocation" ? form.assigned_to?.trim() : null;
+      const created = await createAssetExit({
         asset_id: assetId,
         quantity: form.quantity,
         exit_type: form.exit_type,
-        assigned_to:
-          form.exit_type === "allocation" ? form.assigned_to?.trim() : null,
+        assigned_to: assignedTo,
         office: form.office,
       });
+      const materialProps = {
+        product_id: created.asset_id,
+        product_category:
+          normalizeCategory(created.product_category) ??
+          productCategory ??
+          "training_kit",
+        programme_id: created.programme_id || programmeId,
+        office: normalizeOffice(created.office) ?? office,
+        quantity: created.quantity,
+        currency: created.currency || currency,
+      };
+      track("outbound_order_created", {
+        outbound_order_id: created.id,
+        ...materialProps,
+        created_by: created.user_uuid || getTelemetryUserId(),
+      });
+      if (created.stock_threshold_triggered) {
+        track("stock_threshold_triggered", {
+          ...materialProps,
+          current_stock: created.current_stock,
+          reorder_threshold: created.reorder_threshold,
+          trigger_source_order_id: created.id,
+        });
+      }
       setForm(EMPTY_FORM);
       setAssetId(initialAssetId ?? "");
       setCurrentStock(null);
       setSuccess("Asset exit registered successfully.");
     } catch (err) {
-      setError(
+      const message =
         err instanceof InventoryApiError
           ? err.message
-          : "Failed to register asset exit.",
-      );
+          : "Failed to register asset exit.";
+      setError(message);
+      track("outbound_order_failed", {
+        product_id: assetId,
+        product_category: productCategory,
+        programme_id: programmeId,
+        office,
+        quantity: form.quantity,
+        currency,
+        failure_reason: mapAssignmentFailureReason(message),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -156,6 +244,12 @@ export function AssetExitForm({ assets, initialAssetId }: AssetExitFormProps) {
             {stockLoading
               ? "Loading current stock..."
               : `Current stock: ${currentStock ?? "—"}`}
+            {selectedAsset ? (
+              <>
+                {" · "}
+                Programme: <strong>{selectedAsset.programme_id}</strong>
+              </>
+            ) : null}
           </p>
         ) : null}
 
@@ -231,7 +325,7 @@ export function AssetExitForm({ assets, initialAssetId }: AssetExitFormProps) {
 
         {form.exit_type === "allocation" ? (
           <label className="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
-            Assigned to
+            Assigned to (opaque id)
             <input
               value={form.assigned_to ?? ""}
               onChange={(event) =>
@@ -242,6 +336,7 @@ export function AssetExitForm({ assets, initialAssetId }: AssetExitFormProps) {
               }
               className="rounded border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               required
+              placeholder="agent-uuid-…"
             />
           </label>
         ) : (
