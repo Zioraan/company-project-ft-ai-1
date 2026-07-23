@@ -192,16 +192,25 @@
    - Backend health restored; `GET /api/suppliers/` returns 16 seeded suppliers
 52. Fixed supplier directory UI: sticky SSR `initialError` hid a successful client refetch (JWT is localStorage-only). `SupplierDirectoryClient` now matches inventory — only surface `initialError` when the list is still empty.
 53. Live pipeline verification passed: seeded material telemetry, `POST /reporting/pipeline-runs` completed, and `GET /reporting/weekly-office-program-performance?week_start=2026-07-13` returned per-office/programme KPI rows (EUR/USD kept separate). Reporting remains API-only (no backoffice report UI in this milestone).
+54. Implemented Sales Forecasting Model milestone (`feature/sales-forecast-model`):
+   - Domain library at `services/api/domain/sales_forecast.py` (script/test-only; not imported by FastAPI)
+   - Host `uv` workflow: root `pyproject.toml` + `uv.lock` with pandas/numpy/scikit-learn/scipy/matplotlib/joblib
+   - CLI `scripts/train_sales_forecast.py` → artifacts under `data/artifacts/sales_forecast/`
+   - Leakage-safe RF recursive 24-month forecast vs seasonal-naive; MSE/Gini/PSI/K² + 90% conformal band chart
+   - Tests at `tests/pipelines/`; `tests/conftest.py` skips API fixtures for pipeline tests
+   - API Docker `requirements.txt` / Compose unchanged
+   - Eval: `docs/eval-traceability-sales-forecast.md`; plan archived under past-implementations
 
 ## Next Steps
 
 1. Optional: backoffice UI for Weekly Office & Programme Performance report (not required by phases 1–3 evals).
-2. Complete Stage 1 website parity checks (accessibility, visual parity, optional multilingual parity).
-3. Continue Stage 3 migration for remaining service adapters and add adapter-level tests.
-4. Execute Stage 4 cutover evidence checklist and confirm no operational dependency remains on legacy `apps/*` routes.
-5. Decide whether to remediate or defer the current `npm audit` moderate vulnerabilities in `uis/backoffice` with explicit rationale.
-6. Optional: mount `./data` into API Docker image/`PYTHONPATH` for in-container pipeline imports if using compose without host checkout layout.
-7. Consider enabling RLS on platform Supabase tables (currently disabled; API uses service DB URL).
+2. Optional: XGBoost challenger or Compose `train` profile for in-container sales forecast runs.
+3. Complete Stage 1 website parity checks (accessibility, visual parity, optional multilingual parity).
+4. Continue Stage 3 migration for remaining service adapters and add adapter-level tests.
+5. Execute Stage 4 cutover evidence checklist and confirm no operational dependency remains on legacy `apps/*` routes.
+6. Decide whether to remediate or defer the current `npm audit` moderate vulnerabilities in `uis/backoffice` with explicit rationale.
+7. Optional: mount `./data` into API Docker image/`PYTHONPATH` for in-container pipeline imports if using compose without host checkout layout.
+8. Consider enabling RLS on platform Supabase tables (currently disabled; API uses service DB URL).
 
 ## Risks
 

@@ -9,6 +9,7 @@
 - FastAPI platform API at `services/api` with pytest coverage in `tests/`.
 - TinyDB JSON persistence for suppliers and users (`services/api/data/`).
 - JWT auth: `python-jose`, `passlib[bcrypt]`, `python-dotenv`, `email-validator`.
+- Root `uv` / `pyproject.toml` for host-side ML scripts (sales forecast: scikit-learn, scipy, matplotlib). Not installed in the Compose API image.
 
 ## Existing Architecture Patterns Worth Preserving
 

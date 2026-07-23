@@ -57,3 +57,8 @@ venv/
 
 # Runtime TinyDB storage
 services/api/data/
+
+# Sales forecast generated artifacts (keep directory via .gitkeep)
+data/artifacts/sales_forecast/*
+!data/artifacts/sales_forecast/.gitkeep
+!data/artifacts/sales_forecast/README.md

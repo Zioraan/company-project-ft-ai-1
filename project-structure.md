@@ -15,6 +15,9 @@ Living map of the monorepo layout. Update when directories or major modules are 
 | `agents/` | Runtime company workflow agents (product features) |
 | `docs/` | Architecture proposals, eval traceability, API references |
 | `data/pipelines/` | Pipeline design/orchestration workspace (Prefect deliverables planned) |
+| `data/raw/nexova_sales.csv` | Monthly consolidated revenue (sales forecast input) |
+| `data/artifacts/sales_forecast/` | Generated forecast model/metrics/chart (gitignored outputs) |
+| `pyproject.toml` / `uv.lock` | Root `uv` project for host-side ML scripts (sales forecast) |
 | `services/` | Shared service contracts and platform API |
 | `uis/` | Target UI surfaces (`website`, `backoffice`) |
 | `apps/` | Legacy tracker app (deprecated for net-new work) |
@@ -80,7 +83,8 @@ services/api/
 ├── domain/
 │   ├── incident_analysis.py    # CSV analysis business logic
 │   ├── telemetry_analysis.py   # Legacy request-time telemetry report KPIs
-│   └── weekly_office_program_performance.py  # Weekly material KPI aggregation
+│   ├── weekly_office_program_performance.py  # Weekly material KPI aggregation
+│   └── sales_forecast.py       # Host uv training only; not wired into FastAPI
 ├── data/                       # TinyDB JSON files (gitignored at runtime)
 ├── requirements.txt
 ├── .env.example
@@ -133,6 +137,7 @@ Key modules: `lib/auth-token.ts`, `services/auth.ts`, `components/auth/*`, `serv
 | `tests/test_weekly_office_program_performance.py` | Weekly KPI aggregation unit tests |
 | `tests/test_reporting_api.py` | Reporting weekly performance API |
 | `tests/test_pipeline.py` | Prefect pipeline CLI + run endpoints |
+| `tests/pipelines/` | Sales forecast split/feature/metric unit tests (host `uv`) |
 | `tests/test_incident_analysis.py` | Domain logic unit tests |
 | `tests/inventory-mappers.test.ts` | Inventory label/stock mapper tests |
 
@@ -147,6 +152,7 @@ Key modules: `lib/auth-token.ts`, `services/auth.ts`, `components/auth/*`, `serv
 | `docs/eval-traceability-inventory.md` | Inventory ORM + Supabase milestone evidence |
 | `docs/eval-traceability-docker.md` | Docker platform containerization evidence |
 | `docs/eval-traceability-telemetry.md` | Telemetry Capture + Storage + Report evidence |
+| `docs/eval-traceability-sales-forecast.md` | Sales forecast model evidence (host `uv`, Docker-decoupled) |
 | `docs/telemetry/` | Telemetry plan + event schemas |
 | `memory-bank/progress.md` | Delivery status and completed milestones |
 | `memory-bank/techContext.md` | Stack, constraints, and architecture patterns |
