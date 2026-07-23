@@ -214,11 +214,7 @@ def load_incidents_from_text(
     if not content or not content.strip():
         raise EmptyFileError("CSV file is empty.")
 
-    try:
-        rows = _read_csv_rows(io.StringIO(content))
-    except UnicodeDecodeError as exc:
-        raise CsvParseError("CSV file must be UTF-8 encoded.") from exc
-
+    rows = _read_csv_rows(io.StringIO(content))
     return source_name, rows
 
 

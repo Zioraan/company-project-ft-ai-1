@@ -14,3 +14,6 @@ Archived files:
 - coding-fundamentals-CONTEXT.md
 - talent-pipeline-tracker-CONTEXT.md
 - web-fundamentals-context.md
+- backend-inventory-management-CONTEXT.md
+- inventory-management-workspace-context.md
+- inventory-management-evals.md

@@ -2,7 +2,14 @@ import { CandidateListClient } from "@/components/candidates/CandidateListClient
 import { getRecords } from "@/services/records";
 
 export default async function CandidateListPage() {
-  const initialData = await getRecords({ page: 1, limit: 20 });
+  let initialData;
+  let initialError: string | undefined;
+
+  try {
+    initialData = await getRecords({ page: 1, limit: 20 });
+  } catch {
+    initialError = "Unable to load candidates. Please try again.";
+  }
 
   return (
     <main className="min-h-screen space-y-4 bg-slate-50 py-8 dark:bg-slate-950">
@@ -15,7 +22,7 @@ export default async function CandidateListPage() {
             Manage candidate records, filters, and pipeline stages.
           </p>
         </header>
-        <CandidateListClient initialData={initialData} />
+        <CandidateListClient initialData={initialData} initialError={initialError} />
       </div>
     </main>
   );

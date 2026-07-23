@@ -1,0 +1,90 @@
+"""Application configuration loaded from environment variables."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from functools import lru_cache
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+@dataclass(frozen=True)
+class Settings:
+    jwt_secret_key: str
+    access_token_expire_minutes: int
+    jwt_algorithm: str
+    password_reset_expire_minutes: int
+    password_reset_base_url: str
+    resend_api_key: str | None
+    resend_from_email: str
+    database_url: str
+    telemetry_endpoint: str
+
+
+def _require_database_url() -> str:
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        raise RuntimeError(
+            "DATABASE_URL environment variable is required. "
+            "Set it in services/api/.env to your Supabase PostgreSQL connection string."
+        )
+    return url
+
+
+def _require_secret_key() -> str:
+    secret = os.environ.get("JWT_SECRET_KEY")
+    if not secret:
+        raise RuntimeError(
+            "JWT_SECRET_KEY environment variable is required. "
+            "Set it in services/api/.env or your deployment environment."
+        )
+    return secret
+
+
+def _parse_positive_int(raw: str, env_name: str) -> int:
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"{env_name} must be a positive integer, got {raw!r}."
+        ) from exc
+
+
+@lru_cache
+def get_settings() -> Settings:
+    expire_raw = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    reset_expire_raw = os.environ.get("PASSWORD_RESET_EXPIRE_MINUTES", "30")
+    resend_key = (os.environ.get("RESEND_API_KEY") or "").strip() or None
+    return Settings(
+        jwt_secret_key=_require_secret_key(),
+        access_token_expire_minutes=_parse_positive_int(
+            expire_raw,
+            "ACCESS_TOKEN_EXPIRE_MINUTES",
+        ),
+        jwt_algorithm=os.environ.get("JWT_ALGORITHM", "HS256"),
+        password_reset_expire_minutes=_parse_positive_int(
+            reset_expire_raw,
+            "PASSWORD_RESET_EXPIRE_MINUTES",
+        ),
+        password_reset_base_url=os.environ.get(
+            "PASSWORD_RESET_BASE_URL",
+            "http://localhost:3000/reset-password",
+        ),
+        resend_api_key=resend_key if resend_key else None,
+        resend_from_email=os.environ.get(
+            "RESEND_FROM_EMAIL",
+            "onboarding@resend.dev",
+        ),
+        database_url=_require_database_url(),
+        telemetry_endpoint=os.environ.get(
+            "TELEMETRY_ENDPOINT",
+            "http://localhost:8000/telemetry/events",
+        ),
+    )
+
+
+def clear_settings_cache() -> None:
+    get_settings.cache_clear()

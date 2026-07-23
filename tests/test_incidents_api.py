@@ -2,21 +2,15 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.store.analysis_store import clear_analysis
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
-API_DIR = ROOT_DIR / "services" / "api"
-sys.path.insert(0, str(API_DIR))
-
-from app.main import app  # noqa: E402
-from app.store.analysis_store import clear_analysis  # noqa: E402
-
 FIXTURE_PATH = ROOT_DIR / "tests" / "fixtures" / "incidents-synthetic.csv"
-client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
@@ -24,11 +18,30 @@ def reset_store() -> None:
     clear_analysis()
 
 
-def test_analyze_endpoint_returns_summary() -> None:
+def test_unauthenticated_analyze_returns_401(client: TestClient) -> None:
     with FIXTURE_PATH.open("rb") as handle:
         response = client.post(
             "/api/incidents/analyze",
             files={"file": ("incidents-synthetic.csv", handle, "text/csv")},
+        )
+
+    assert response.status_code == 401
+
+
+def test_unauthenticated_export_returns_401(client: TestClient) -> None:
+    response = client.get("/api/incidents/results/export")
+    assert response.status_code == 401
+
+
+def test_analyze_endpoint_returns_summary(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    with FIXTURE_PATH.open("rb") as handle:
+        response = client.post(
+            "/api/incidents/analyze",
+            files={"file": ("incidents-synthetic.csv", handle, "text/csv")},
+            headers=auth_headers,
         )
 
     assert response.status_code == 200
@@ -40,44 +53,63 @@ def test_analyze_endpoint_returns_summary() -> None:
     assert "@" not in response.text
 
 
-def test_export_endpoint_returns_csv() -> None:
+def test_export_endpoint_returns_csv(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
     with FIXTURE_PATH.open("rb") as handle:
         client.post(
             "/api/incidents/analyze",
             files={"file": ("incidents-synthetic.csv", handle, "text/csv")},
+            headers=auth_headers,
         )
 
-    response = client.get("/api/incidents/results/export")
+    response = client.get("/api/incidents/results/export", headers=auth_headers)
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
     assert "metric,value" in response.text
     assert "@" not in response.text
 
 
-def test_export_without_analysis_returns_404() -> None:
-    response = client.get("/api/incidents/results/export")
+def test_export_without_analysis_returns_404(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    response = client.get("/api/incidents/results/export", headers=auth_headers)
     assert response.status_code == 404
 
 
-def test_analyze_rejects_empty_file() -> None:
+def test_analyze_rejects_empty_file(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
     response = client.post(
         "/api/incidents/analyze",
         files={"file": ("empty.csv", b"", "text/csv")},
+        headers=auth_headers,
     )
     assert response.status_code == 400
 
 
-def test_analyze_rejects_non_csv_extension() -> None:
+def test_analyze_rejects_non_csv_extension(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
     response = client.post(
         "/api/incidents/analyze",
         files={"file": ("notes.txt", b"hello", "text/plain")},
+        headers=auth_headers,
     )
     assert response.status_code == 400
 
 
-def test_analyze_rejects_missing_header() -> None:
+def test_analyze_rejects_missing_header(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
     response = client.post(
         "/api/incidents/analyze",
         files={"file": ("bad.csv", b"ticket_id,date\n", "text/csv")},
+        headers=auth_headers,
     )
     assert response.status_code == 400

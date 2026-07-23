@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { CandidateTable } from "@/components/candidates/CandidateTable";
 import { CandidateFiltersBar } from "@/components/filters/CandidateFiltersBar";
 import { CandidateForm } from "@/components/forms/CandidateForm";
+import { AsyncState } from "@/components/ui/AsyncState";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useQueryFilters } from "@/hooks/useQueryFilters";
 import { createRecord } from "@/services/records";
@@ -22,9 +23,13 @@ const EMPTY_FORM: CandidateFormValues = {
 
 interface CandidateListClientProps {
   initialData?: RecordsListResponse;
+  initialError?: string;
 }
 
-export function CandidateListClient({ initialData }: CandidateListClientProps) {
+export function CandidateListClient({
+  initialData,
+  initialError,
+}: CandidateListClientProps) {
   const { filters, setFilters } = useQueryFilters();
   const normalizedFilters = useMemo(
     () => ({
@@ -38,6 +43,7 @@ export function CandidateListClient({ initialData }: CandidateListClientProps) {
   const { records, total, page, limit, loading, error, refetch } =
     useCandidates(normalizedFilters, { initialData });
 
+  const listError = error ?? initialError ?? null;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
@@ -76,11 +82,18 @@ export function CandidateListClient({ initialData }: CandidateListClientProps) {
             </span>
           </div>
 
-          {loading && (
-            <p className="text-sm text-slate-700">Loading candidates...</p>
-          )}
-          {error && <p className="text-sm text-red-700">{error}</p>}
-          {!loading && !error && <CandidateTable records={records} />}
+          <AsyncState
+            loading={loading}
+            error={listError}
+            onRetry={() => void refetch()}
+            backHref="/"
+            backLabel="Back to dashboard"
+            loadingFallback={
+              <p className="text-sm text-slate-700">Loading candidates...</p>
+            }
+          >
+            <CandidateTable records={records} />
+          </AsyncState>
 
           <div className="mt-4 flex items-center justify-between text-sm text-slate-700">
             <span>

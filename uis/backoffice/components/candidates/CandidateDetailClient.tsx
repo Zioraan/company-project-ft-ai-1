@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CandidateForm } from "@/components/forms/CandidateForm";
 import { NotesPanel } from "@/components/notes/NotesPanel";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useCandidateDetail } from "@/hooks/useCandidateDetail";
 import { useNotes } from "@/hooks/useNotes";
 import {
@@ -38,6 +39,7 @@ export function CandidateDetailClient({
     loading,
     saving,
     error,
+    refetch,
     saveFullRecord,
     saveStatusAndStage,
     removeRecord,
@@ -49,6 +51,7 @@ export function CandidateDetailClient({
     error: notesError,
     addNote,
     removeNote,
+    refetch: refetchNotes,
   } = useNotes(candidateId, { initialNotes });
 
   const [status, setStatus] = useState<RecordStatus | "">("");
@@ -66,13 +69,12 @@ export function CandidateDetailClient({
   if (error || !record) {
     return (
       <main className="p-6">
-        <p className="text-red-700">{error ?? "Candidate not found"}</p>
-        <Link
-          href="/candidates"
-          className="mt-3 inline-block rounded bg-slate-900 px-3 py-2 text-sm text-white"
-        >
-          Back to list
-        </Link>
+        <ErrorState
+          message={error ?? "Candidate not found"}
+          onRetry={() => void refetch()}
+          backHref="/candidates"
+          backLabel="Back to list"
+        />
       </main>
     );
   }
@@ -100,8 +102,12 @@ export function CandidateDetailClient({
           <button
             disabled={saving}
             onClick={async () => {
-              await removeRecord();
-              router.push("/candidates");
+              try {
+                await removeRecord();
+                router.push("/candidates");
+              } catch {
+                // error surfaced via hook state
+              }
             }}
             className="rounded bg-red-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
@@ -179,13 +185,19 @@ export function CandidateDetailClient({
             <button
               disabled={saving || !status || !stage}
               onClick={async () => {
-                await saveStatusAndStage(
-                  status as RecordStatus,
-                  stage as RecordStage,
-                );
-                setStatus("");
-                setStage("");
-                setStatusStageMessage("Status and stage updated successfully.");
+                try {
+                  await saveStatusAndStage(
+                    status as RecordStatus,
+                    stage as RecordStage,
+                  );
+                  setStatus("");
+                  setStage("");
+                  setStatusStageMessage(
+                    "Status and stage updated successfully.",
+                  );
+                } catch {
+                  setStatusStageMessage(null);
+                }
               }}
               className="rounded bg-blue-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
@@ -217,6 +229,7 @@ export function CandidateDetailClient({
           error={notesError}
           onAdd={addNote}
           onDelete={removeNote}
+          onRetry={() => void refetchNotes()}
         />
       </div>
     </main>

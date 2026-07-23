@@ -1,6 +1,10 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://playground.4geeks.com/tracker/api/v1";
 
+export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
+export const NETWORK_ERROR_MESSAGE = "Unable to reach the server.";
+export const INVALID_RESPONSE_MESSAGE = "Invalid server response.";
+
 export class ApiError extends Error {
   status: number;
   payload: unknown;
@@ -13,43 +17,72 @@ export class ApiError extends Error {
   }
 }
 
+async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new ApiError(NETWORK_ERROR_MESSAGE, 0, null);
+  }
+}
+
 async function parseResponseBody(response: Response): Promise<unknown> {
   const contentType = response.headers.get("content-type") ?? "";
 
-  if (contentType.includes("application/json")) {
-    return response.json();
+  try {
+    if (contentType.includes("application/json")) {
+      return await response.json();
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    return await response.text();
+  } catch {
+    throw new ApiError(INVALID_RESPONSE_MESSAGE, response.status, null);
+  }
+}
+
+function parseErrorMessage(response: Response, payload: unknown): string {
+  const status = response.status;
+
+  if (status >= 500) {
+    return GENERIC_ERROR_MESSAGE;
   }
 
-  if (response.status === 204) {
-    return null;
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "error" in payload &&
+    typeof (payload as { error?: unknown }).error === "string" &&
+    status < 500
+  ) {
+    return (payload as { error: string }).error;
   }
 
-  return response.text();
+  if (status === 404) {
+    return "The requested resource was not found.";
+  }
+
+  return GENERIC_ERROR_MESSAGE;
 }
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await safeFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      ...(init?.headers ?? {})
+      ...(init?.headers ?? {}),
     },
-    cache: "no-store"
+    cache: "no-store",
   });
 
   const payload = await parseResponseBody(response);
 
   if (!response.ok) {
-    const defaultMessage =
-      typeof payload === "object" &&
-      payload !== null &&
-      "error" in payload &&
-      typeof (payload as { error?: unknown }).error === "string"
-        ? (payload as { error: string }).error
-        : `Request failed with status ${response.status}`;
-
-    throw new ApiError(defaultMessage, response.status, payload);
+    const message = parseErrorMessage(response, payload);
+    throw new ApiError(message, response.status, payload);
   }
 
   return payload as T;
