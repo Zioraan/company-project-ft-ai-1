@@ -17,7 +17,8 @@ Living map of the monorepo layout. Update when directories or major modules are 
 | `data/pipelines/` | Pipeline design/orchestration workspace (Prefect deliverables planned) |
 | `data/raw/nexova_sales.csv` | Monthly consolidated revenue (sales forecast input) |
 | `data/artifacts/sales_forecast/` | Generated forecast model/metrics/chart (gitignored outputs) |
-| `pyproject.toml` / `uv.lock` | Root `uv` project for host-side ML scripts (sales forecast) |
+| `notebooks/` | Exploratory analysis notebooks (sales forecast model selection) |
+| `pyproject.toml` / `uv.lock` | Root `uv` project for host-side ML scripts (sales forecast + Jupyter) |
 | `services/` | Shared service contracts and platform API |
 | `uis/` | Target UI surfaces (`website`, `backoffice`) |
 | `apps/` | Legacy tracker app (deprecated for net-new work) |

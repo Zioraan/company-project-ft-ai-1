@@ -201,16 +201,24 @@
    - API Docker `requirements.txt` / Compose unchanged
    - Eval: `docs/eval-traceability-sales-forecast.md`; plan archived under past-implementations
 
+54b. Started collaborative sales-forecast model-selection notebook:
+   - `notebooks/sales_forecast_model_selection.ipynb` restructured to GeeksforGeeks-style EDA flow (import → load → analyze → prepare → visualize → train → conclude)
+   - Candidates: seasonal-naive, Holt-Winters (`statsmodels`), Ridge, Random Forest
+   - Plan: `memory-bank/documentation/sales-forecast-model-selection-plan.md`
+   - Jupyter/ipykernel (dev) + seaborn + statsmodels for notebook EDA/TS
+   - Model decision walkthrough still pending with user
+
 ## Next Steps
 
-1. Optional: backoffice UI for Weekly Office & Programme Performance report (not required by phases 1–3 evals).
-2. Optional: XGBoost challenger or Compose `train` profile for in-container sales forecast runs.
-3. Complete Stage 1 website parity checks (accessibility, visual parity, optional multilingual parity).
-4. Continue Stage 3 migration for remaining service adapters and add adapter-level tests.
-5. Execute Stage 4 cutover evidence checklist and confirm no operational dependency remains on legacy `apps/*` routes.
-6. Decide whether to remediate or defer the current `npm audit` moderate vulnerabilities in `uis/backoffice` with explicit rationale.
-7. Optional: mount `./data` into API Docker image/`PYTHONPATH` for in-container pipeline imports if using compose without host checkout layout.
-8. Consider enabling RLS on platform Supabase tables (currently disabled; API uses service DB URL).
+1. Finish model-selection notebook Steps 2–5 and lock chosen model (RF vs Ridge vs optional XGBoost).
+2. Optional: backoffice UI for Weekly Office & Programme Performance report (not required by phases 1–3 evals).
+3. Optional: XGBoost challenger or Compose `train` profile for in-container sales forecast runs.
+4. Complete Stage 1 website parity checks (accessibility, visual parity, optional multilingual parity).
+5. Continue Stage 3 migration for remaining service adapters and add adapter-level tests.
+6. Execute Stage 4 cutover evidence checklist and confirm no operational dependency remains on legacy `apps/*` routes.
+7. Decide whether to remediate or defer the current `npm audit` moderate vulnerabilities in `uis/backoffice` with explicit rationale.
+8. Optional: mount `./data` into API Docker image/`PYTHONPATH` for in-container pipeline imports if using compose without host checkout layout.
+9. Consider enabling RLS on platform Supabase tables (currently disabled; API uses service DB URL).
 
 ## Risks
 

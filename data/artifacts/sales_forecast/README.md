@@ -9,5 +9,6 @@ Typical outputs:
 - `predictions.csv` — test actuals, predictions, interval bounds
 - `run_metadata.json` — split, features, seed, params
 - `forecast_2024_2025.png` — chart with 90% interval band
+- `actual_results_diagram.png` — diagram-ready actual vs RF / seasonal-naive chart (regenerate with `uv run python scripts/_plot_sales_actuals_diagram.py`)
 
 Do not commit generated binaries or charts; this directory is gitignored except this README and `.gitkeep`.
